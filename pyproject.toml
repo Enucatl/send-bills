@@ -1,0 +1,39 @@
+[project]
+name = "send_bills"
+authors = [
+{ name = "Enucatl", email = "1423701+Enucatl@users.noreply.github.com" },
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">= 3.11"
+dependencies = [
+  "cairosvg",
+  "click",
+  "pandas",
+  "pyarrow",
+  "qrbill",
+]
+dynamic = ["version"]
+
+[build-system]
+requires = [
+    "setuptools >= 63",
+    "wheel",
+    "setuptools-git-versioning",
+]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest",
+]
+
+[tools.setuptools-git-versioning]
+enabled = true
+
+[tools.ruff]
+select = ["ALL"]
+
+# [project.scripts]
+# bulk_download = "ilpedante_mirror.bulk_download:main"
