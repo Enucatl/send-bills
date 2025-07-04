@@ -1,0 +1,11 @@
+services:
+  bills:
+    build:
+      context: . # Build context is the directory where this docker-compose.yml and Dockerfile are located
+      dockerfile: Dockerfile
+      args:
+        VERSION: ${VERSION:-unknown}
+    environment:
+      - DATABASE_URL
+      - DJANGO_SETTINGS_MODULE=send_bills.project.settings.development
+    restart: unless-stopped
