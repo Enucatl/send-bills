@@ -86,3 +86,13 @@ VERSION = os.environ.get("VERSION", "unknown")
 
 # Define where Django will collect static files in production
 STATIC_ROOT = os.environ.get("DJANGO_STATIC_ROOT", "/vol/web/staticfiles")
+
+# Configure email
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", 10125))
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_USE_TLS", True)
+EMAIL_TIMEOUT = os.environ.get("DJANGO_EMAIL_TIMEOUT", 60)
+EMAIL_SSL_KEYFILE = os.environ.get("DJANGO_EMAIL_SSL_KEYFILE")
+EMAIL_SSL_CERTFILE = os.environ.get("DJANGO_EMAIL_SSL_CERTFILE")

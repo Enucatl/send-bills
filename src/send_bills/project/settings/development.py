@@ -31,3 +31,6 @@ except ValueError:
         "Warning: CustomHeaderRemoteUserMiddleware not found, could not insert dev middleware."
     )
     pass
+
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

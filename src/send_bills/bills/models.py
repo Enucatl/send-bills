@@ -1,10 +1,12 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+from iso3166 import countries
 import jinja2
 import pandas as pd
-import stdnum.iban
+import qrbill
 import stdnum.exceptions
+import stdnum.iban
 
 from .references import cleanup_reference, generate_invoice_reference
 
@@ -26,6 +28,12 @@ ALLOWED_DATE_OFFSETS = [
     "YearBegin",
     "Easter",
 ]
+
+ALLOWED_CURRENCIES = sorted([
+    (currency, currency) for currency in qrbill.QRBill.allowed_currencies
+])
+LANGUAGES = [(language, language) for language in ["en", "de", "fr", "it"]]
+
 
 # Dynamically create the choices tuple for the model field.
 DATE_OFFSET_CHOICES = sorted([(offset, offset) for offset in ALLOWED_DATE_OFFSETS])
@@ -55,7 +63,7 @@ def get_date_offset_instance(offset_name: str, **kwargs) -> pd.DateOffset:
 
 
 class Contact(models.Model):
-    name = models.CharField(max_length=1000)
+    name = models.CharField(max_length=70)
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -64,12 +72,12 @@ class Contact(models.Model):
 
 
 class Creditor(models.Model):
-    city = models.CharField(max_length=1000)
+    city = models.CharField(max_length=35)
     country = models.CharField(max_length=2)
     email = models.EmailField("Creditor Email", unique=True)
     iban = models.CharField(max_length=34, unique=True)
-    name = models.CharField(max_length=1000)
-    pcode = models.CharField(max_length=10)
+    name = models.CharField(max_length=70)
+    pcode = models.CharField(max_length=16)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -77,10 +85,21 @@ class Creditor(models.Model):
 
     def clean(self):
         super().clean()
+        if self.country:
+            try:
+                countries.get(self.country).alpha2
+            except KeyError:
+                raise ValidationError(
+                    f"The country code {self.country} is not a valid ISO3166 code."
+                )
         if self.iban:
             try:
                 normalized_iban = stdnum.iban.validate(self.iban)
                 self.iban = normalized_iban
+                if self.account[:2] not in qrbill.bill.IBAN_ALLOWED_COUNTRIES:
+                    raise ValueError(
+                        f"IBAN must start with: {qrbill.bill.IBAN_ALLOWED_COUNTRIES}"
+                    )
             except stdnum.exceptions.ValidationError as e:
                 raise ValidationError({"iban": f"Invalid IBAN: {e.message}"})
             except Exception:
@@ -97,6 +116,8 @@ class BaseBill(models.Model):
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT)
     creditor = models.ForeignKey(Creditor, on_delete=models.PROTECT)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, choices=ALLOWED_CURRENCIES)
+    language = models.CharField(max_length=2, choices=LANGUAGES)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -238,6 +259,7 @@ class Bill(BaseBill):
     due_date = models.DateTimeField(
         blank=True, null=True, help_text="Date by when the bill needs to be paid."
     )
+    sent_at = models.DateTimeField(null=True, blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
 
     def _generate_reference_number(self) -> str:

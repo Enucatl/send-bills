@@ -50,7 +50,7 @@ RUN sed -i '/^\[tools\.setuptools-git-versioning\]/,/^\[/d' pyproject.toml || tr
 RUN uv sync --all-groups
 
 # Install the full app
-COPY --chown=appuser:appuser src/send_bills /app/src/send_bills
+COPY --chown=appuser:appuser src/ /app/src/
 RUN uv pip install .
 
 # Collect static files. Gunicorn will serve these in this setup.

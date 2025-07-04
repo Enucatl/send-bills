@@ -1,0 +1,4 @@
+Please find attached your QR Bill for {{ bill.additional_information }}.
+
+Thanks,
+{{ bill.creditor.name }}

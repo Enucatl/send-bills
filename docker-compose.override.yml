@@ -8,4 +8,6 @@ services:
     environment:
       - DATABASE_URL
       - DJANGO_SETTINGS_MODULE=send_bills.project.settings.development
+    ports:
+      - 8000:8000
     restart: unless-stopped

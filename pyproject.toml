@@ -12,7 +12,7 @@ dependencies = [
   "cairosvg",
   "click",
   "dj-database-url",
-  "django",
+  "django >= 5.2",
   "gunicorn",
   "Jinja2",
   "mixer",
