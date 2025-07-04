@@ -96,15 +96,15 @@ class Creditor(models.Model):
             try:
                 normalized_iban = stdnum.iban.validate(self.iban)
                 self.iban = normalized_iban
-                if self.account[:2] not in qrbill.bill.IBAN_ALLOWED_COUNTRIES:
+                if self.iban[:2] not in qrbill.bill.IBAN_ALLOWED_COUNTRIES:
                     raise ValueError(
                         f"IBAN must start with: {qrbill.bill.IBAN_ALLOWED_COUNTRIES}"
                     )
             except stdnum.exceptions.ValidationError as e:
                 raise ValidationError({"iban": f"Invalid IBAN: {e.message}"})
-            except Exception:
+            except Exception as e:
                 raise ValidationError({
-                    "iban": "An unexpected error occurred during IBAN validation."
+                    "iban": f"An unexpected error occurred during IBAN validation. {e}"
                 })
 
 
@@ -116,8 +116,8 @@ class BaseBill(models.Model):
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT)
     creditor = models.ForeignKey(Creditor, on_delete=models.PROTECT)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, choices=ALLOWED_CURRENCIES)
-    language = models.CharField(max_length=2, choices=LANGUAGES)
+    currency = models.CharField(max_length=3, default="CHF", choices=ALLOWED_CURRENCIES)
+    language = models.CharField(max_length=2, default="en", choices=LANGUAGES)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

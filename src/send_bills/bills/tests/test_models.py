@@ -82,13 +82,13 @@ class ModelTests(TestCase):
         creditor_with_spaces = Creditor(
             name="Spacey Bank",
             email="spacey@example.com",
-            iban="BR15 00000 00000 00109 32840 814P2",
+            iban="CH1499  403J1  M12OPJ2HC1",
             city="Basel",
             country="CH",
             pcode="4000",
         )
         creditor_with_spaces.full_clean()
-        self.assertEqual(creditor_with_spaces.iban, "BR1500000000000010932840814P2")
+        self.assertEqual(creditor_with_spaces.iban, "CH1499403J1M12OPJ2HC1")
 
     def test_creditor_clean_invalid_iban(self):
         creditor_invalid = Creditor(

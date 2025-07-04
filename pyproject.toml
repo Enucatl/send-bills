@@ -43,4 +43,101 @@ dev = [
 enabled = true
 
 [tool.ruff]
-select = ["ALL"]
+select = [
+    "A",   # flake8-builtins (shadowing builtins)
+    "ANN", # flake8-annotations (type hint style and presence) - can be noisy, might need more ignore rules
+    "B",   # Bandit (security issues)
+    "C90", # McCabe complexity (e.g., C901: "too complex")
+    "COM", # flake8-commas (trailing commas) - if you enforce this explicitly
+    "D",   # pydocstyle (docstring style) - requires careful `ignore` for specific styles
+    "DTZ", # flake8-datetimez (timezone-aware datetimes)
+    "E",   # Pycodestyle errors (e.g., E712: "instead of using `== True` consider `is True` or `if variable`")
+    "EM",  # flake8-errmsg (f-strings for exceptions)
+    "ERA", # eradicate (commented out code)
+    "F",   # Pyflakes (e.g., F841: "local variable `x` is assigned to but never used")
+    "G",   # flake8-logging-format (logging best practices)
+    "I",   # isort (import order)
+    "ICN", # flake8-implicit-concat (disallow implicit string concatenation)
+    "INP", # flake8-no-implicit-concat (no implicit namespace packages)
+    "ISC", # flake8-implicit-str-concat (string concatenation best practices)
+    "N",   # pep8-naming (naming conventions)
+    "P",   # flake8-bugbear (common pitfalls, e.g., B006: "do not use mutable data structures for default arguments")
+    "PIE", # flake8-pie (more Pythonic code)
+    "PLC", # Pylint Convention (subset)
+    "PLE", # Pylint Error (subset)
+    "PLR", # Pylint Refactor (subset)
+    "PLW", # Pylint Warning (subset)
+    "PTH", # flake8-use-pathlib (prefer pathlib over os.path)
+    "RET", # flake8-return (consistent return statements)
+    "RSL", # flake8-raise (best practices for exceptions)
+    "RUF", # Ruff-specific rules (e.g., RUF005: "unnecessary `else` after `return`")
+    "SIM", # flake8-simplify (simplifiable code, e.g., SIM108: "use `if cond:` instead of `if not cond: else: pass`")
+    "SLF", # flake8-self (consistent use of self)
+    "TCH", # flake8-type-checking (best practices for type checking imports)
+    "TID", # flake8-tidy-imports (import structure)
+    "TRY", # tryceratops (try/except best practices)
+    "UP",  # pyupgrade (modern Python syntax)
+    "W",   # Pycodestyle warnings (e.g., W292: "no newline at end of file")
+    "YTT", # flake8-no-pytest-trap (trap warnings from pytest)
+    # "FA",  # flake8-future-annotations (future annotations checks)
+    # Add more as your project matures:
+]
+
+# Rules to ignore (disable) from the selected set.
+# Common reasons: conflicts with formatting, too opinionated, or not applicable to your project.
+ignore = [
+    # E501: Line too long. Black (or Ruff's own formatter) handles this.
+    "E501",
+    # W292: No newline at end of file. Ruff format handles this.
+    "W292",
+
+    # Docstring rules (D): these are highly opinionated. Adjust based on your team's style.
+    # Often ignored:
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in __init__
+    "D203", # 1 blank line required before class docstring (conflicts with D205)
+    "D212", # Multi-line docstring summary should start on the second line (conflicts with D213)
+    "D213", # Multi-line docstring summary should start on the same line as the opening quotes
+    # Keeping D205 (No blank line required between a one-line summary and rest of docstring)
+    # Keeping D400 (First line should end with a period)
+    # Keeping D401 (First line should be in imperative mood)
+
+    # Naming conventions (N): adjust as needed for frameworks or specific styles.
+    "N805", # First argument of a method should be named 'self' (sometimes 'cls' for classmethods).
+            # This rule often flags args that *are* `self`/`cls` but are used in a framework-specific way.
+            # Only ignore if you absolutely can't follow it.
+
+    # Type annotation rules (ANN): can be noisy if you're not fully typed yet.
+    # Common to ignore these if you don't strictly require *all* args/self to be typed:
+    "ANN101", # Missing type annotation for `self` in method
+    "ANN102", # Missing type annotation for `cls` in classmethod
+    "ANN002", # Missing type annotation for `*args`
+    "ANN003", # Missing type annotation for `**kwargs`
+    # You might consider ignoring:
+    # "ANN401", # Dynamically typed expressions (usage of `Any`). Enable once your typing is mature.
+
+    # Pylint rules (PL):
+    "PLR0913", # Too many arguments (limit of 5 by default). Can be good to enforce, but sometimes too strict.
+    "PLR0912", # Too many branches (if/elif/else).
+    "PLR0911", # Too many return statements.
+
+    # Bandit rules (B):
+    "B008", # Do not use `asyncio.run` in a loop - very important for async code, but might be triggered in tests/scripts where it's fine.
+            # Generally, keep this rule, but be aware.
+    "S101", # Use of `assert` statement. Important for security, as asserts are stripped in optimized mode.
+            # If used only for testing, you might ignore it in test files via `per-file-ignores`.
+]
+
+# Ruff's own formatter handles many stylistic concerns (like E501, W292).
+# It's recommended to use `ruff format` instead of `black` for unified formatting and linting.
+# If you *do* use Black, ensure its line length matches.
+line-length = 88 # Standard Black line length
+
+# Specifies the target Python version for `UP` (pyupgrade) rules.
+target-version = "py313"
+
+# Docstring convention. Set this if using 'D' rules.
+# Common options: "google", "numpy", "pep257", "sphinx"
+docstring-convention = "google"
