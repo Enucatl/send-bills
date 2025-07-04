@@ -21,6 +21,7 @@ dependencies = [
   "pyarrow",
   "python-stdnum",
   "qrbill",
+  "whitenoise",
 ]
 dynamic = ["version"]
 

@@ -39,6 +39,7 @@ ENV HOME=/app
 WORKDIR /app
 
 # Copy the requirements file and install Python dependencies
+COPY --chown=appuser:appuser MANIFEST.in .
 COPY --chown=appuser:appuser pyproject.toml .
 ARG VERSION=latest
 ENV VERSION=${VERSION}

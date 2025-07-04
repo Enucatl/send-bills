@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Upload Transactions from UBS CSV{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <form action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <fieldset class="module aligned">
+            <h2>Upload a CSV file</h2>
+            <p></p>
+            
+            <div class="form-row">
+                {{ form.csv_file.label_tag }} {{ form.csv_file }}
+                {{ form.csv_file.errors }}
+            </div>
+        </fieldset>
+        
+        <div class="submit-row">
+            <input type="submit" value="Upload CSV" class="default">
+        </div>
+    </form>
+</div>
+{% endblock %}

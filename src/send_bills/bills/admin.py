@@ -1,5 +1,9 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.urls import path
+from django.shortcuts import render, redirect
+
 from send_bills.bills.models import Bill, Contact, Creditor, RecurringBill
+from .forms import CsvUploadForm
 
 
 @admin.register(Contact)
@@ -12,6 +16,36 @@ class ContactAdmin(admin.ModelAdmin):
 class CreditorAdmin(admin.ModelAdmin):
     list_display = ("name", "email", "iban", "city", "country", "created_at")
     search_fields = ("name", "email", "iban")
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            path("upload-csv/", self.upload_csv, name="upload_csv"),
+        ]
+        return my_urls + urls
+
+    def upload_csv(self, request):
+        if request.method == "POST":
+            form = CsvUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                csv_file = request.FILES["csv_file"]
+
+                # Check if it's a CSV file
+                if not csv_file.name.endswith(".csv"):
+                    messages.error(request, "This is not a CSV file")
+                    return redirect(".")
+
+                self.message_user(
+                    request,
+                    f"Successfully created {products_created} and updated {products_updated} products.",
+                    messages.SUCCESS,
+                )
+                return redirect("..")
+
+        # If GET request, render the upload form
+        form = CsvUploadForm()
+        context = {"form": form}
+        return render(request, "admin/bills/creditor/upload_csv.html", context)
 
 
 @admin.register(Bill)

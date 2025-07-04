@@ -1,0 +1,2 @@
+recursive-include src/send_bills/** *.html
+recursive-include src/send_bills/** *.txt

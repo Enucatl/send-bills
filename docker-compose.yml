@@ -20,6 +20,8 @@ services:
       - "traefik.http.routers.bills.tls=true"
       - "traefik.http.routers.bills.middlewares=authelia@docker,secured@file"
       - "traefik.http.services.bills.loadbalancer.server.port=8000"
+    volumes:
+      - /etc/ssl/certs/root_2022_ca.pem:/usr/lib/ssl/certs/root_2022_ca.pem:ro
     networks:
       - traefik_proxy
 

@@ -9,12 +9,12 @@ from send_bills.bills.models import Bill
 
 
 def generate_pdf(bill: Bill) -> io.BytesIO:
-    creditor = qrbill.bill.StructuredAddress(
-        city=bill.creditor.city,
-        country=bill.creditor.country,
-        name=bill.creditor.name,
-        pcode=bill.creditor.pcode,
-    )
+    creditor = {
+        "city": bill.creditor.city,
+        "country": bill.creditor.country,
+        "name": bill.creditor.name,
+        "pcode": bill.creditor.pcode,
+    }
     q = qrbill.QRBill(
         account=bill.creditor.iban,
         additional_information=bill.additional_information,
@@ -43,7 +43,7 @@ def generate_attachment(pdf: io.BytesIO) -> EmailAttachment:
 
 def send_bill_email(bill: Bill) -> int:
     context = {"bill": bill}
-    subject = render_to_string("emails/bill_subject.txt", context=context)
+    subject = render_to_string("emails/bill_subject.txt", context=context).strip()
     body = render_to_string("emails/bill_body.txt", context=context)
     pdf = generate_pdf(bill)
     attachment = generate_attachment(pdf)
