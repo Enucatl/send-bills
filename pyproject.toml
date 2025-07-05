@@ -36,6 +36,7 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 dev = [
+    "freezegun",
     "pytest",
     "ruff",
     "setuptools-git-versioning",

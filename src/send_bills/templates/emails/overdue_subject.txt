@@ -1,0 +1,1 @@
+Overdue bill: {{ bill.additional_information }}

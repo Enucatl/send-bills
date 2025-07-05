@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from send_bills.bills.models import Bill, RecurringBill
-from send_bills.bills.utils import send_bill_email
+from send_bills.bills.utils import send_bill_email, send_overdue_email
 
 logger = logging.getLogger(__name__)
 
@@ -138,3 +138,49 @@ class GenerateRecurringBillsAPIView(APIView):
                 "generated_count": generated_bills_count,
             }
             return Response(data, status=status.HTTP_200_OK)
+
+
+class MarkOverdueBillsAPIView(APIView):
+    """
+    API endpoint to check all overdue bills
+    """
+
+    def post(self, request, format=None):
+        updated = (
+            Bill.objects.filter(due_date__lte=now())
+            .exclude(status=Bill.BillStatus.OVERDUE)
+            .update(status=Bill.BillStatus.OVERDUE)
+        )
+
+        data = {
+            "status": "success",
+            "message": "checked overdue bills",
+            "updated_count": updated,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class NotifyOverdueBillsAPIView(APIView):
+    """
+    API endpoint to send notifications for overdue bills to the creditor
+    """
+
+    def post(self, request, format=None):
+        overdue = Bill.objects.select_related("creditor", "contact").filter(
+            status=Bill.BillStatus.OVERDUE
+        )
+        total_sent = 0
+        errors = []
+        for bill in overdue.iterator():
+            sent = send_overdue_email(bill)
+            if not sent:
+                errors.append(f"email not sent for bill {bill}")
+            else:
+                total_sent += sent
+        data = {
+            "status": "success",
+            "message": "sent overdue bill notifications",
+            "errors": errors,
+            "notifications": total_sent,
+        }
+        return Response(data, status=status.HTTP_200_OK)

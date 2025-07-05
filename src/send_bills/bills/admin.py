@@ -2,8 +2,9 @@ from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import render, redirect
 
-from send_bills.bills.models import Bill, Contact, Creditor, RecurringBill
+from .models import Bill, Contact, Creditor, RecurringBill
 from .forms import CsvUploadForm
+from .utils import process_payments
 
 
 @admin.register(Contact)
@@ -35,11 +36,19 @@ class CreditorAdmin(admin.ModelAdmin):
                     messages.error(request, "This is not a CSV file")
                     return redirect(".")
 
-                self.message_user(
-                    request,
-                    f"Successfully created {products_created} and updated {products_updated} products.",
-                    messages.SUCCESS,
-                )
+                try:
+                    paid_bills = process_payments(csv_file)
+                    self.message_user(
+                        request,
+                        f"Successfully registered {paid_bills} payments.",
+                        messages.SUCCESS,
+                    )
+                except Exception as e:
+                    self.message_user(
+                        request,
+                        f"{e}",
+                        messages.ERROR,
+                    )
                 return redirect("..")
 
         # If GET request, render the upload form

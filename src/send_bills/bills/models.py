@@ -285,3 +285,6 @@ class Bill(BaseBill):
         if not self.reference_number:
             self.reference_number = self._generate_reference_number()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Bill {self.id} for {self.contact.name} {self.reference_number} {self.amount} {self.currency} {self.status}"
