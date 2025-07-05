@@ -22,20 +22,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Important: Fetches full history for git describe to work
-          fetch-depth: 0 
+          fetch-depth: 0
 
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13' # Or your desired Python version, e.g., '3.11', '3.12'
 
-      - name: Get CARGO_PACKAGE_VERSION from git
+      - name: Install uv
+        run: |
+          pip install uv
+
+      - name: Install project dependencies with uv
+        # This command assumes your project has a pyproject.toml or setup.py
+        # at the root and installs all its dependencies, including
+        # setuptools-git-versioning if it's a declared dependency.
+        run: uv pip install .[dev]
+
+      - name: Get Application Version from setuptools-git-versioning
         id: get_version
         run: |
-          VERSION=$(git describe --long | sed 's/-/\./')
-          echo "Detected CARGO_PACKAGE_VERSION: $VERSION"
-          echo "CARGO_PACKAGE_VERSION=$VERSION" >> $GITHUB_OUTPUT
+          # Use python -c to execute a short script that gets the version
+          # using setuptools_git_versioning.
+          VERSION=$(python -m setuptools_git_versioning)
+          echo "Detected VERSION: $VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Run cargo test
-        run: cargo test --verbose
+      - name: Run Django tests
+        run: DATABASE_URL="sqlite:///:memory:" python src/send_bills/manage.py test bills api
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -51,10 +65,11 @@ jobs:
           file: ${{ env.DOCKERFILE_PATH }}
           push: true
           tags: |
-            ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.get_version.outputs.CARGO_PACKAGE_VERSION }}
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.get_version.outputs.VERSION }}
             ${{ env.DOCKER_IMAGE_NAME }}:latest
           build-args: |
-            CARGO_PACKAGE_VERSION=${{ steps.get_version.outputs.CARGO_PACKAGE_VERSION }}
+            # Pass the calculated version as a build argument to the Dockerfile
+            VERSION=${{ steps.get_version.outputs.VERSION }}
 
       - name: Trigger Portainer Redeploy
         # This step runs only if the build and push was successful.
