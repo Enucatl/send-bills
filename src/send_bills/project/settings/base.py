@@ -41,7 +41,6 @@ MIDDLEWARE = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.RemoteUserBackend",
     "send_bills.project.backends.CustomRemoteUserBackend",
 ]
 

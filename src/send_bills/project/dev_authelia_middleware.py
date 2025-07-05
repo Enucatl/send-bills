@@ -20,10 +20,6 @@ class DevAutheliaHeaderMiddleware:
             request.META["HTTP_REMOTE_EMAIL"] = dev_email
             try:
                 user = User.objects.get(username=dev_username)
-                if not user.is_staff or not user.is_superuser:
-                    user.is_staff = True
-                    user.is_superuser = True
-                    user.save()
             except User.DoesNotExist:
                 # If the user doesn't exist, RemoteUserBackend will create it.
                 # However, RemoteUserBackend won't set is_staff/is_superuser automatically.
@@ -35,8 +31,6 @@ class DevAutheliaHeaderMiddleware:
                     username=dev_username,
                     defaults={
                         "email": dev_email,
-                        "is_staff": True,
-                        "is_superuser": True,
                     },
                 )
                 if created:
