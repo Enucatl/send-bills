@@ -44,6 +44,9 @@ dev = [
 
 [tool.setuptools-git-versioning]
 enabled = true
+template = "{tag}.{ccount}"
+dev_template = "{tag}.{ccount}"
+dirty_template = "{tag}.{ccount}+g{sha}.dirty"
 
 [tool.ruff]
 select = [
