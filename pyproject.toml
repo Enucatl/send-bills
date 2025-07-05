@@ -13,6 +13,7 @@ dependencies = [
   "click",
   "dj-database-url",
   "django >= 5.2",
+  "djangorestframework",
   "gunicorn",
   "Jinja2",
   "mixer",

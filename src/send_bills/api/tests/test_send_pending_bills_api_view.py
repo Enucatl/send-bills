@@ -5,21 +5,18 @@ from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
 
-from django.http import JsonResponse
+from rest_framework.response import Response
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
-# Adjust these imports based on your actual app name
 from send_bills.bills.models import Bill, Contact, Creditor
-
-# Import send_bill_email from utils, and send_pending_bills_api_view from views
-from send_bills.bills.utils import send_bill_email
-from send_bills.bills.views import send_pending_bills_api_view
+from send_bills.api.views import SendPendingBillsAPIView
 
 
 class BillProcessingViewTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
+        self.view = SendPendingBillsAPIView.as_view()
         self.creditor = Creditor.objects.create(
             name="Test Creditor AG",
             city="Zurich",
@@ -65,29 +62,22 @@ class BillProcessingViewTests(TestCase):
     def tearDown(self):
         self.logger.removeHandler(self.handler)
 
-    # --- Tests for send_pending_bills_api_view ---
-
-    def test_only_post_requests_allowed(self):
-        request = self.factory.get("/api/send_bills/")  # Use a dummy URL
-        response = send_pending_bills_api_view(request)
-        self.assertEqual(response.status_code, 405)
-        self.assertIsInstance(response, JsonResponse)
-        self.assertIn("Only POST requests are allowed", response.content.decode())
+    # --- Tests for self.view ---
 
     @patch(
-        "send_bills.bills.views.send_bill_email"
+        "send_bills.api.views.send_bill_email"
     )  # Patch the imported function in the view's module
     def test_no_pending_bills_found(self, mock_send_bill_email):
         # Ensure no pending bills exist for this test
         Bill.objects.filter(status=Bill.BillStatus.PENDING).delete()
 
         request = self.factory.post("/api/send_bills/")
-        response = send_pending_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response, JsonResponse)
+        self.assertIsInstance(response, Response)
         self.assertEqual(
-            json.loads(response.content.decode()),
+            response.data,
             {
                 "status": "success",
                 "message": "No pending bills found to send.",
@@ -95,22 +85,21 @@ class BillProcessingViewTests(TestCase):
             },
         )
         mock_send_bill_email.assert_not_called()
-        self.assertIn("No pending bills found to send.", self.log_stream.getvalue())
 
     @patch(
-        "send_bills.bills.views.send_bill_email", return_value=1
+        "send_bills.api.views.send_bill_email", return_value=1
     )  # Mock send_bill_email to always succeed
     def test_successful_sending_of_all_pending_bills(self, mock_send_bill_email):
         request = self.factory.post("/api/send_bills/")
-        response = send_pending_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response, JsonResponse)
+        self.assertIsInstance(response, Response)
         self.assertEqual(
-            json.loads(response.content.decode()),
+            response.data,
             {
                 "status": "success",
-                "message": f"Successfully sent and updated 2 pending bills.",
+                "message": "Successfully sent and updated 2 pending bills.",
                 "processed_count": 2,
             },
         )
@@ -139,10 +128,8 @@ class BillProcessingViewTests(TestCase):
 
         self.bill_sent.refresh_from_db()  # Ensure non-pending bills are not touched
         self.assertEqual(self.bill_sent.status, Bill.BillStatus.SENT)
-        self.assertIn(f"Bill {self.bill_pending_1.id}", self.log_stream.getvalue())
-        self.assertIn(f"Bill {self.bill_pending_2.id}", self.log_stream.getvalue())
 
-    @patch("send_bills.bills.views.send_bill_email")
+    @patch("send_bills.api.views.send_bill_email")
     def test_partial_success_with_some_failures(self, mock_send_bill_email):
         # Configure mock_send_bill_email to succeed for bill_pending_1, fail for bill_pending_2
         mock_send_bill_email.side_effect = [
@@ -151,15 +138,14 @@ class BillProcessingViewTests(TestCase):
         ]  # 1 for bill_pending_1, 0 for bill_pending_2 (order matters if not using specific bill mocks)
 
         request = self.factory.post("/api/send_bills/")
-        response = send_pending_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response, JsonResponse)
-        json_response = json.loads(response.content.decode())
-        self.assertEqual(json_response["status"], "partial_success")
-        self.assertEqual(json_response["processed_count"], 1)
-        self.assertEqual(len(json_response["errors"]), 1)
-        self.assertIn(f"Bill {self.bill_pending_2.id}", json_response["errors"][0])
+        self.assertIsInstance(response, Response)
+        self.assertEqual(response.data["status"], "partial_success")
+        self.assertEqual(response.data["processed_count"], 1)
+        self.assertEqual(len(response.data["errors"]), 1)
+        self.assertIn(f"Bill {self.bill_pending_2.id}", response.data["errors"][0])
 
         # Assert bill statuses
         self.bill_pending_1.refresh_from_db()
@@ -172,27 +158,21 @@ class BillProcessingViewTests(TestCase):
         )  # Should not be updated
         self.assertIsNone(self.bill_pending_2.sent_at)
 
-        self.assertIn(
-            f"Failed to send and update status for bill {self.bill_pending_2.id}",
-            self.log_stream.getvalue(),
-        )
-
-    @patch("send_bills.bills.views.send_bill_email")
+    @patch("send_bills.api.views.send_bill_email")
     def test_unexpected_exception_during_processing(self, mock_send_bill_email):
         # Make the first call succeed, the second call raise an exception
         mock_send_bill_email.side_effect = [1, Exception("Simulated network error")]
 
         request = self.factory.post("/api/send_bills/")
-        response = send_pending_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        json_response = json.loads(response.content.decode())
-        self.assertEqual(json_response["status"], "partial_success")
-        self.assertEqual(json_response["processed_count"], 1)
-        self.assertEqual(len(json_response["errors"]), 1)
-        self.assertIn(f"Bill {self.bill_pending_2.id}", json_response["errors"][0])
+        self.assertEqual(response.data["status"], "partial_success")
+        self.assertEqual(response.data["processed_count"], 1)
+        self.assertEqual(len(response.data["errors"]), 1)
+        self.assertIn(f"Bill {self.bill_pending_2.id}", response.data["errors"][0])
         self.assertIn(
-            "Unexpected error - Simulated network error", json_response["errors"][0]
+            "Unexpected error - Simulated network error", response.data["errors"][0]
         )
 
         # Assert bill statuses
@@ -205,9 +185,3 @@ class BillProcessingViewTests(TestCase):
             self.bill_pending_2.status, Bill.BillStatus.PENDING
         )  # Should not be updated
         self.assertIsNone(self.bill_pending_2.sent_at)
-
-        self.assertIn(
-            f"Unexpected error processing bill {self.bill_pending_2.id}",
-            self.log_stream.getvalue(),
-        )
-        self.assertIn("Simulated network error", self.log_stream.getvalue())

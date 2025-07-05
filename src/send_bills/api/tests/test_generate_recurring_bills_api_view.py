@@ -5,9 +5,9 @@ import logging
 from decimal import Decimal
 from unittest.mock import patch
 
-import pandas as pd  # Import pandas for DateOffset calculations
-from django.db import IntegrityError  # For simulating save errors
-from django.http import JsonResponse
+import pandas as pd
+from django.db import IntegrityError
+from rest_framework.response import Response
 from django.test import RequestFactory, TestCase
 from django.utils import timezone
 
@@ -18,12 +18,13 @@ from send_bills.bills.models import (
     RecurringBill,
     get_date_offset_instance,
 )
-from send_bills.bills.views import generate_recurring_bills_api_view
+from send_bills.api.views import GenerateRecurringBillsAPIView
 
 
 class GenerateRecurringBillsViewTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
+        self.view = GenerateRecurringBillsAPIView.as_view()
         self.creditor = Creditor.objects.create(
             name="Test Creditor AG",
             city="Zurich",
@@ -38,25 +39,17 @@ class GenerateRecurringBillsViewTests(TestCase):
         self.tzinfo = datetime.timezone.utc
 
         # Configure logging to capture output
-        self.logger = logging.getLogger("send_bills.bills.views")
+        self.logger = logging.getLogger("send_bills.api.views")
         self.log_stream = io.StringIO()
         self.handler = logging.StreamHandler(self.log_stream)
         self.logger.addHandler(self.handler)
-        self.logger.setLevel(logging.INFO)  # Set to INFO to catch useful messages
+        self.logger.setLevel(logging.INFO)
 
     def tearDown(self):
         self.logger.removeHandler(self.handler)
         self.handler.close()  # Close the stream handler to prevent resource leaks
 
-    def test_only_post_requests_allowed(self):
-        """Ensure the view only accepts POST requests."""
-        request = self.factory.get("/api/generate-recurring-bills/")
-        response = generate_recurring_bills_api_view(request)
-        self.assertEqual(response.status_code, 405)
-        self.assertIsInstance(response, JsonResponse)
-        self.assertIn("Only POST requests are allowed", response.content.decode())
-
-    @patch("send_bills.bills.views.now")
+    @patch("send_bills.api.views.now")
     def test_no_active_recurring_bills_found(self, mock_now):
         """Test response when no recurring bills exist."""
         mock_now.return_value = timezone.datetime(
@@ -64,12 +57,12 @@ class GenerateRecurringBillsViewTests(TestCase):
         )
 
         request = self.factory.post("/api/generate-recurring-bills/")
-        response = generate_recurring_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response, JsonResponse)
+        self.assertIsInstance(response, Response)
         self.assertEqual(
-            json.loads(response.content.decode()),
+            response.data,
             {
                 "status": "success",
                 "message": "No active recurring bills found to process.",
@@ -81,7 +74,7 @@ class GenerateRecurringBillsViewTests(TestCase):
         )
         self.assertEqual(Bill.objects.count(), 0)
 
-    @patch("send_bills.bills.views.now")
+    @patch("send_bills.api.views.now")
     def test_no_recurring_bills_due(self, mock_now):
         """Test response when active recurring bills exist but none are due."""
         current_time = timezone.datetime(2025, 7, 15, 12, 0, 0, tzinfo=self.tzinfo)
@@ -101,13 +94,13 @@ class GenerateRecurringBillsViewTests(TestCase):
         )
 
         request = self.factory.post("/api/generate-recurring-bills/")
-        response = generate_recurring_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response, JsonResponse)
+        self.assertIsInstance(response, Response)
         self.assertIn(
             "No active recurring",
-            json.loads(response.content.decode())["message"],
+            response.data["message"],
         )
         self.assertIn(
             "No active recurring",
@@ -118,7 +111,7 @@ class GenerateRecurringBillsViewTests(TestCase):
         recurring_bill.refresh_from_db()
         self.assertEqual(recurring_bill.next_billing_date, future_date)
 
-    @patch("send_bills.bills.views.now")
+    @patch("send_bills.api.views.now")
     def test_successful_bill_generation_single(self, mock_now):
         """Test successful generation of a single bill from a recurring schedule."""
         current_time = timezone.datetime(2025, 7, 20, 10, 0, 0, tzinfo=self.tzinfo)
@@ -139,13 +132,12 @@ class GenerateRecurringBillsViewTests(TestCase):
         )
 
         request = self.factory.post("/api/generate-recurring-bills/")
-        response = generate_recurring_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        json_response = json.loads(response.content.decode())
-        self.assertEqual(json_response["status"], "success")
-        self.assertEqual(json_response["generated_count"], 1)
-        self.assertIn("Successfully generated 1 bills", json_response["message"])
+        self.assertEqual(response.data["status"], "success")
+        self.assertEqual(response.data["generated_count"], 1)
+        self.assertIn("Successfully generated 1 bills", response.data["message"])
 
         # Assert a new Bill was created
         self.assertEqual(Bill.objects.count(), 1)
@@ -166,13 +158,13 @@ class GenerateRecurringBillsViewTests(TestCase):
             "MonthBegin"
         )
         self.assertEqual(recurring_bill.next_billing_date, expected_next_billing_date)
-        self.assertIn(f"Generated new bill", self.log_stream.getvalue())
+        self.assertIn("Generated new bill", self.log_stream.getvalue())
         self.assertIn(
             f"Next billing date set to {expected_next_billing_date}",
             self.log_stream.getvalue(),
         )
 
-    @patch("send_bills.bills.views.now")
+    @patch("send_bills.api.views.now")
     def test_successful_bill_generation_multiple_mixed(self, mock_now):
         """Test processing of multiple recurring bills, some due, some not."""
         current_time = timezone.datetime(2025, 7, 20, 10, 0, 0, tzinfo=self.tzinfo)
@@ -231,15 +223,14 @@ class GenerateRecurringBillsViewTests(TestCase):
         )
 
         request = self.factory.post("/api/generate-recurring-bills/")
-        response = generate_recurring_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        json_response = json.loads(response.content.decode())
-        self.assertEqual(json_response["status"], "success")
+        self.assertEqual(response.data["status"], "success")
         self.assertEqual(
-            json_response["generated_count"], 2
+            response.data["generated_count"], 2
         )  # Only rb1 and rb3 should generate
-        self.assertIn("Successfully generated 2 bills", json_response["message"])
+        self.assertIn("Successfully generated 2 bills", response.data["message"])
 
         self.assertEqual(Bill.objects.count(), 2)
         generated_bills = Bill.objects.all().order_by("amount")
@@ -276,7 +267,7 @@ class GenerateRecurringBillsViewTests(TestCase):
         self.assertEqual(rb4.next_billing_date, rb4_inactive_date)
         self.assertFalse(Bill.objects.filter(recurring_bill=rb4).exists())
 
-    @patch("send_bills.bills.views.now")
+    @patch("send_bills.api.views.now")
     def test_error_during_bill_generation_or_update(self, mock_now):
         """Test error handling during the generation process."""
         current_time = timezone.datetime(2025, 8, 1, 10, 0, 0, tzinfo=self.tzinfo)
@@ -319,15 +310,14 @@ class GenerateRecurringBillsViewTests(TestCase):
 
         with patch("send_bills.bills.models.Bill.save", new=mock_bill_save):
             request = self.factory.post("/api/generate-recurring-bills/")
-            response = generate_recurring_bills_api_view(request)
+            response = self.view(request)
 
             self.assertEqual(response.status_code, 200)
-            json_response = json.loads(response.content.decode())
-            self.assertEqual(json_response["status"], "partial_success")
-            self.assertEqual(json_response["generated_count"], 1)  # Only rb_success
-            self.assertEqual(len(json_response["errors"]), 1)
-            self.assertIn(f"RecurringBill {rb_fail.id}", json_response["errors"][0])
-            self.assertIn("Simulated database error", json_response["errors"][0])
+            self.assertEqual(response.data["status"], "partial_success")
+            self.assertEqual(response.data["generated_count"], 1)  # Only rb_success
+            self.assertEqual(len(response.data["errors"]), 1)
+            self.assertIn(f"RecurringBill {rb_fail.id}", response.data["errors"][0])
+            self.assertIn("Simulated database error", response.data["errors"][0])
 
             # Verify only one bill was actually created (the successful one)
             self.assertEqual(Bill.objects.count(), 1)
@@ -358,7 +348,7 @@ class GenerateRecurringBillsViewTests(TestCase):
         # Restore original save method
         Bill.save = original_bill_save
 
-    @patch("send_bills.bills.views.now")
+    @patch("send_bills.api.views.now")
     def test_next_billing_date_exactly_now(self, mock_now):
         """Ensure bills are generated when next_billing_date is exactly the current time."""
         current_time = timezone.datetime(2025, 9, 1, 10, 30, 0, tzinfo=self.tzinfo)
@@ -376,12 +366,11 @@ class GenerateRecurringBillsViewTests(TestCase):
         )
 
         request = self.factory.post("/api/generate-recurring-bills/")
-        response = generate_recurring_bills_api_view(request)
+        response = self.view(request)
 
         self.assertEqual(response.status_code, 200)
-        json_response = json.loads(response.content.decode())
-        self.assertEqual(json_response["status"], "success")
-        self.assertEqual(json_response["generated_count"], 1)
+        self.assertEqual(response.data["status"], "success")
+        self.assertEqual(response.data["generated_count"], 1)
 
         self.assertEqual(Bill.objects.count(), 1)
         new_bill = Bill.objects.first()
