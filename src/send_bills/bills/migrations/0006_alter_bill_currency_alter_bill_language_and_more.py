@@ -4,30 +4,41 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('bills', '0005_bill_currency_bill_language_bill_sent_at_and_more'),
+        ("bills", "0005_bill_currency_bill_language_bill_sent_at_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='bill',
-            name='currency',
-            field=models.CharField(choices=[('CHF', 'CHF'), ('EUR', 'EUR')], default='CHF', max_length=3),
+            model_name="bill",
+            name="currency",
+            field=models.CharField(
+                choices=[("CHF", "CHF"), ("EUR", "EUR")], default="CHF", max_length=3
+            ),
         ),
         migrations.AlterField(
-            model_name='bill',
-            name='language',
-            field=models.CharField(choices=[('en', 'en'), ('de', 'de'), ('fr', 'fr'), ('it', 'it')], default='en', max_length=2),
+            model_name="bill",
+            name="language",
+            field=models.CharField(
+                choices=[("en", "en"), ("de", "de"), ("fr", "fr"), ("it", "it")],
+                default="en",
+                max_length=2,
+            ),
         ),
         migrations.AlterField(
-            model_name='recurringbill',
-            name='currency',
-            field=models.CharField(choices=[('CHF', 'CHF'), ('EUR', 'EUR')], default='CHF', max_length=3),
+            model_name="recurringbill",
+            name="currency",
+            field=models.CharField(
+                choices=[("CHF", "CHF"), ("EUR", "EUR")], default="CHF", max_length=3
+            ),
         ),
         migrations.AlterField(
-            model_name='recurringbill',
-            name='language',
-            field=models.CharField(choices=[('en', 'en'), ('de', 'de'), ('fr', 'fr'), ('it', 'it')], default='en', max_length=2),
+            model_name="recurringbill",
+            name="language",
+            field=models.CharField(
+                choices=[("en", "en"), ("de", "de"), ("fr", "fr"), ("it", "it")],
+                default="en",
+                max_length=2,
+            ),
         ),
     ]

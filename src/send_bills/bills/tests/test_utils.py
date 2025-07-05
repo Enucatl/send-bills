@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch, call
 
 from django.core.mail import EmailAttachment
 from django.test import TestCase
-from unittest import mock
 
 # Adjust these imports based on your actual app name
 from send_bills.bills.models import Bill, Contact, Creditor
@@ -75,7 +74,7 @@ class BillUtilityFunctionsTests(TestCase):
         args, kwargs = mock_svg2pdf.call_args
 
         # IMPROVEMENT: Assert the exact byte string for more precise testing.
-        self.assertEqual(kwargs["bytestring"], "<svg>Mock SVG</svg>")
+        self.assertEqual(kwargs["bytestring"], b"<svg>Mock SVG</svg>")
         self.assertIsInstance(kwargs["write_to"], io.BytesIO)
 
     def test_generate_attachment(self):
@@ -143,14 +142,18 @@ class BillUtilityFunctionsTests(TestCase):
 
         # Verify calls to our utility functions
         mock_generate_pdf.assert_called_once_with(self.bill)
-        mock_generate_attachment.assert_called_once_with(mock_pdf_io)
+        mock_generate_attachment.assert_called_once_with(
+            mock_pdf_io, filename="bill.pdf"
+        )
 
         # Verify template rendering
         expected_context = {"bill": self.bill}
-        mock_render_to_string.assert_has_calls([
-            call("emails/bill_subject.txt", context=expected_context),
-            call("emails/bill_body.txt", context=expected_context),
-        ])
+        mock_render_to_string.assert_has_calls(
+            [
+                call("emails/bill_subject.txt", context=expected_context),
+                call("emails/bill_body.txt", context=expected_context),
+            ]
+        )
 
         # Verify EmailMessage instantiation
         mock_EmailMessage.assert_called_once_with(

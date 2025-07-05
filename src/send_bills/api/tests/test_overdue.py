@@ -80,14 +80,18 @@ class SendOverdueEmailTest(APITestCase):  # APITestCase provides DB setup and cl
         self.assertEqual(sent_count, 1)
 
         # Assert render_to_string was called correctly
-        mock_render_to_string.assert_has_calls([
-            mock.call("emails/overdue_subject.txt", context={"bill": self.bill}),
-            mock.call("emails/overdue_body.txt", context={"bill": self.bill}),
-        ])
+        mock_render_to_string.assert_has_calls(
+            [
+                mock.call("emails/overdue_subject.txt", context={"bill": self.bill}),
+                mock.call("emails/overdue_body.txt", context={"bill": self.bill}),
+            ]
+        )
 
         # Assert PDF and attachment generation
         mock_generate_pdf.assert_called_once_with(self.bill)
-        mock_generate_attachment.assert_called_once_with(b"mock_pdf_content")
+        mock_generate_attachment.assert_called_once_with(
+            b"mock_pdf_content", filename="overdue_bill_47.pdf"
+        )
 
         # Assert EmailMessage was instantiated correctly
         mock_email_message.assert_called_once_with(
@@ -195,7 +199,7 @@ class MarkOverdueBillsAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["message"], "checked overdue bills")
+        self.assertEqual(response.data["message"], "Checked and updated overdue bills.")
         self.assertEqual(
             response.data["updated_count"], 0
         )  # No bills should be updated
@@ -254,7 +258,7 @@ class MarkOverdueBillsAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["message"], "checked overdue bills")
+        self.assertEqual(response.data["message"], "Checked and updated overdue bills.")
         self.assertEqual(
             response.data["updated_count"], 3
         )  # bill1, bill2, bill5 should be updated
@@ -339,7 +343,9 @@ class NotifyOverdueBillsAPITest(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["message"], "sent overdue bill notifications")
+        self.assertEqual(
+            response.data["message"], "Successfully sent 2 overdue bill notifications."
+        )
         self.assertEqual(response.data["errors"], [])
         self.assertEqual(
             response.data["notifications"], 2
@@ -361,10 +367,9 @@ class NotifyOverdueBillsAPITest(APITestCase):
         Bill.objects.filter(status=Bill.BillStatus.OVERDUE).delete()
 
         response = self.view(self.client.post(self.url))
-
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["message"], "sent overdue bill notifications")
+        self.assertEqual(response.data["message"], "No overdue bills found to notify.")
         self.assertEqual(response.data["errors"], [])
         self.assertEqual(response.data["notifications"], 0)  # No notifications sent
 
@@ -374,8 +379,6 @@ class NotifyOverdueBillsAPITest(APITestCase):
     @mock.patch("send_bills.api.views.send_overdue_email")
     def test_notify_overdue_bills_some_failures(self, mock_send_overdue_email):
         # Simulate one success, one failure
-        # The order depends on how .iterator() yields, but for two, it's predictable enough.
-        # If many, you might need a more robust way to map calls.
         mock_send_overdue_email.side_effect = [
             1,
             0,
@@ -384,8 +387,10 @@ class NotifyOverdueBillsAPITest(APITestCase):
         response = self.view(self.client.post(self.url))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["message"], "sent overdue bill notifications")
+        self.assertEqual(response.data["status"], "partial_success")
+        self.assertIn(
+            "Sent 1 overdue notifications successfully.", response.data["message"]
+        )
         self.assertEqual(response.data["notifications"], 1)  # Only one succeeded
 
         # Check errors list (order may vary based on iterator)

@@ -30,4 +30,3 @@ except ValueError:
     print(
         "Warning: CustomHeaderRemoteUserMiddleware not found, could not insert dev middleware."
     )
-    pass

@@ -1,6 +1,5 @@
 import datetime
 import io
-import json
 import logging
 from decimal import Decimal
 from unittest.mock import patch
@@ -160,7 +159,7 @@ class GenerateRecurringBillsViewTests(TestCase):
         self.assertEqual(recurring_bill.next_billing_date, expected_next_billing_date)
         self.assertIn("Generated new bill", self.log_stream.getvalue())
         self.assertIn(
-            f"Next billing date set to {expected_next_billing_date}",
+            f"Next billing date set to {expected_next_billing_date.isoformat()}",
             self.log_stream.getvalue(),
         )
 

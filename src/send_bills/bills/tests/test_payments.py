@@ -3,7 +3,6 @@ import io
 from datetime import datetime
 from decimal import Decimal
 
-import pandas as pd
 from pytz import timezone
 from django.test import TestCase
 

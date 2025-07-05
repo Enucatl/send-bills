@@ -6,50 +6,67 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('bills', '0003_recurringbill_frequency_kwargs'),
+        ("bills", "0003_recurringbill_frequency_kwargs"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='recurringbill',
-            name='additional_information',
+            model_name="recurringbill",
+            name="additional_information",
         ),
         migrations.RemoveField(
-            model_name='recurringbill',
-            name='next_due_date',
+            model_name="recurringbill",
+            name="next_due_date",
         ),
         migrations.AddField(
-            model_name='bill',
-            name='billing_date',
+            model_name="bill",
+            name="billing_date",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
         migrations.AddField(
-            model_name='recurringbill',
-            name='description_template',
-            field=models.TextField(default='', help_text="Jinja2 template for the bill description. e.g., 'Service for {{ billing_date.year }}'."),
+            model_name="recurringbill",
+            name="description_template",
+            field=models.TextField(
+                default="",
+                help_text="Jinja2 template for the bill description. e.g., 'Service for {{ billing_date.year }}'.",
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='recurringbill',
-            name='next_billing_date',
-            field=models.DateTimeField(blank=True, db_index=True, default=datetime.datetime(2025, 7, 3, 18, 42, 29, 387042, tzinfo=datetime.timezone.utc), help_text='The next date a bill will be generated and due. Defaults to start_date.'),
+            model_name="recurringbill",
+            name="next_billing_date",
+            field=models.DateTimeField(
+                blank=True,
+                db_index=True,
+                default=datetime.datetime(
+                    2025, 7, 3, 18, 42, 29, 387042, tzinfo=datetime.timezone.utc
+                ),
+                help_text="The next date a bill will be generated and due. Defaults to start_date.",
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='bill',
-            name='additional_information',
-            field=models.TextField(help_text="Rendered description for the bill (e.g., 'YouTube Premium 2025Q2')."),
+            model_name="bill",
+            name="additional_information",
+            field=models.TextField(
+                help_text="Rendered description for the bill (e.g., 'YouTube Premium 2025Q2')."
+            ),
         ),
         migrations.AlterField(
-            model_name='bill',
-            name='due_date',
-            field=models.DateTimeField(blank=True, help_text='Date by when the bill needs to be paid.', null=True),
+            model_name="bill",
+            name="due_date",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="Date by when the bill needs to be paid.",
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='bill',
-            name='reference_number',
-            field=models.CharField(blank=True, db_index=True, editable=False, max_length=27),
+            model_name="bill",
+            name="reference_number",
+            field=models.CharField(
+                blank=True, db_index=True, editable=False, max_length=27
+            ),
         ),
     ]
