@@ -79,7 +79,7 @@ class BillAdmin(admin.ModelAdmin):
         "reference_number",
     )
     # The reference number is now auto-generated, so make it read-only
-    readonly_fields = ("reference_number", "created_at", "sent_at", "paid_at")
+    readonly_fields = ("reference_number", "created_at", "sent_at")
     date_hierarchy = "billing_date"  # Use billing_date as the primary date
     ordering = ("-billing_date",)  # Order by the new primary date
 

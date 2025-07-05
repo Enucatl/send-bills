@@ -14,3 +14,8 @@ DATABASE_URL=$(vault kv get -mount=airflow -field=uri connections/djangodev) /op
 ```
 DATABASE_URL=$(vault kv get -mount=airflow -field=uri connections/djangodev) /opt/home/user/venv/send-bills/bin/python src/send_bills/manage.py runserver
 ```
+
+## Run development docker
+```
+VERSION=$(/opt/home/user/venv/send-bills/bin/python -m setuptools_git_versioning) docker compose --env-file .env up --build
+```
