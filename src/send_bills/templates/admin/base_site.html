@@ -1,17 +1,17 @@
 {% extends 'admin/base.html' %}
 {% load i18n static %}
+{% load version %}
 
 {% block title %}{{ title }} | {% translate 'Bills Admin' %}{% endblock %}
 
 {% block branding %}
-    <h1 id="site-name"><a href="{% url 'admin:index' %}">{% translate 'Bills Administration' %}</a></h1>
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{% translate 'Bills Administration' %}</a></h1>
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
 
 {% block footer %}
     <div id="footer">
-        <p>© {% now "Y" %} Bills</p>
-        <p>Version: {{ settings.VERSION }}</p>
+        <p>© {% now "Y" %} Bills | Version {% version %}</p>
     </div>
 {% endblock %}

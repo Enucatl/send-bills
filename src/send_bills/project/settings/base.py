@@ -87,9 +87,6 @@ TIME_ZONE = "Europe/Zurich"
 USE_I18N = False
 USE_TZ = True
 
-# get app version from environment
-VERSION = os.environ.get("VERSION", "unknown")
-
 # --- DEFAULT PRIMARY KEY ---
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
