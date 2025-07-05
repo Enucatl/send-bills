@@ -34,22 +34,17 @@ jobs:
           pip install uv
 
       - name: Install project dependencies with uv
-        # This command assumes your project has a pyproject.toml or setup.py
-        # at the root and installs all its dependencies, including
-        # setuptools-git-versioning if it's a declared dependency.
-        run: uv pip install --system .[dev]
+        run: uv venv && uv pip install .[dev]
 
       - name: Get Application Version from setuptools-git-versioning
         id: get_version
         run: |
-          # Use python -c to execute a short script that gets the version
-          # using setuptools_git_versioning.
-          VERSION=$(python -m setuptools_git_versioning)
+          VERSION=$(.venv/bin/python -m setuptools_git_versioning)
           echo "Detected VERSION: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Run Django tests
-        run: DATABASE_URL="sqlite:///:memory:" python src/send_bills/manage.py test bills api
+        run: DATABASE_URL="sqlite:///:memory:" .venv/bin/python src/send_bills/manage.py test bills api
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
