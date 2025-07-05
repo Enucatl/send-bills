@@ -90,7 +90,7 @@ def send_overdue_email(bill: Bill) -> int:
     body: str = render_to_string("emails/overdue_body.txt", context=context)
 
     pdf_buffer = generate_pdf(bill)
-    attachment = generate_attachment(pdf_buffer, filename=f"overdue_bill_{bill.id}.pdf")
+    attachment = generate_attachment(pdf_buffer, filename="bill.pdf")
 
     email = EmailMessage(
         subject=subject,

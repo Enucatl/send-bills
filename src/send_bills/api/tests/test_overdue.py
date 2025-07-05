@@ -80,17 +80,15 @@ class SendOverdueEmailTest(APITestCase):  # APITestCase provides DB setup and cl
         self.assertEqual(sent_count, 1)
 
         # Assert render_to_string was called correctly
-        mock_render_to_string.assert_has_calls(
-            [
-                mock.call("emails/overdue_subject.txt", context={"bill": self.bill}),
-                mock.call("emails/overdue_body.txt", context={"bill": self.bill}),
-            ]
-        )
+        mock_render_to_string.assert_has_calls([
+            mock.call("emails/overdue_subject.txt", context={"bill": self.bill}),
+            mock.call("emails/overdue_body.txt", context={"bill": self.bill}),
+        ])
 
         # Assert PDF and attachment generation
         mock_generate_pdf.assert_called_once_with(self.bill)
         mock_generate_attachment.assert_called_once_with(
-            b"mock_pdf_content", filename="overdue_bill_47.pdf"
+            b"mock_pdf_content", filename="bill.pdf"
         )
 
         # Assert EmailMessage was instantiated correctly
