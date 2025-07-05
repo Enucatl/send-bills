@@ -37,7 +37,7 @@ jobs:
         # This command assumes your project has a pyproject.toml or setup.py
         # at the root and installs all its dependencies, including
         # setuptools-git-versioning if it's a declared dependency.
-        run: uv pip install .[dev]
+        run: uv pip install --system .[dev]
 
       - name: Get Application Version from setuptools-git-versioning
         id: get_version
