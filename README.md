@@ -1,6 +1,6 @@
 # Django Bills Manager
 
-![Build & Deploy](https://github.com/enucatl/bills/actions/workflows/deploy.yml/badge.svg)
+[![GitHub Actions CI/CD](https://github.com/Enucatl/send-bills/actions/workflows/deploy.yml/badge.svg)](https://github.com/Enucatl/send-bills/actions/workflows/deploy.yml)
 
 A robust and automated Django application for managing, generating, and sending invoices, with first-class support for **Swiss QR-Bills** and automated payment reconciliation.
 
@@ -45,8 +45,8 @@ Follow these steps to get a local development server running.
 
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/enucatl/send_bills.git
-    cd send_bills
+    git clone https://github.com/enucatl/send-bills.git
+    cd send-bills
     ```
 
 2.  **Set Up Virtual Environment & Install Dependencies:**
