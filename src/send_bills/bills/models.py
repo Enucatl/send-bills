@@ -32,18 +32,18 @@ ALLOWED_DATE_OFFSETS: List[str] = [
     "Easter",
 ]
 
-ALLOWED_CURRENCIES: List[Tuple[str, str]] = sorted([
-    (currency, currency) for currency in qrbill.QRBill.allowed_currencies
-])
+ALLOWED_CURRENCIES: List[Tuple[str, str]] = sorted(
+    [(currency, currency) for currency in qrbill.QRBill.allowed_currencies]
+)
 LANGUAGES: List[Tuple[str, str]] = [
     (language, language) for language in ["en", "de", "fr", "it"]
 ]
 
 
 # Dynamically create the choices tuple for the model field.
-DATE_OFFSET_CHOICES: List[Tuple[str, str]] = sorted([
-    (offset, offset) for offset in ALLOWED_DATE_OFFSETS
-])
+DATE_OFFSET_CHOICES: List[Tuple[str, str]] = sorted(
+    [(offset, offset) for offset in ALLOWED_DATE_OFFSETS]
+)
 
 
 def get_date_offset_instance(offset_name: str, **kwargs: Any) -> pd.DateOffset:
@@ -127,19 +127,23 @@ class Creditor(models.Model):
                 normalized_iban = stdnum.iban.validate(self.iban)
                 self.iban = normalized_iban
                 if self.iban[:2] not in qrbill.bill.IBAN_ALLOWED_COUNTRIES:
-                    raise ValidationError({
-                        "iban": (
-                            f"IBAN must start with one of the allowed country codes:"
-                            f" {', '.join(qrbill.bill.IBAN_ALLOWED_COUNTRIES)}"
-                        )
-                    })
+                    raise ValidationError(
+                        {
+                            "iban": (
+                                f"IBAN must start with one of the allowed country codes:"
+                                f" {', '.join(qrbill.bill.IBAN_ALLOWED_COUNTRIES)}"
+                            )
+                        }
+                    )
             except stdnum.exceptions.ValidationError as e:
                 raise ValidationError({"iban": f"Invalid IBAN: {e.message}"}) from e
             except Exception as e:
                 # Catch any other unexpected errors during IBAN validation
-                raise ValidationError({
-                    "iban": f"An unexpected error occurred during IBAN validation. {e}"
-                }) from e
+                raise ValidationError(
+                    {
+                        "iban": f"An unexpected error occurred during IBAN validation. {e}"
+                    }
+                ) from e
 
 
 class BaseBill(models.Model):
@@ -217,21 +221,23 @@ class RecurringBill(BaseBill):
             and self.next_billing_date
             and self.next_billing_date < self.start_date
         ):
-            raise ValidationError({
-                "next_billing_date": "next_billing_date cannot be before start_date"
-            })
+            raise ValidationError(
+                {"next_billing_date": "next_billing_date cannot be before start_date"}
+            )
 
         # Validate that the frequency and kwargs are a valid combination
         try:
             get_date_offset_instance(self.frequency, **self.frequency_kwargs)
         except ValidationError as e:
             # Raise a more specific error for the form fields
-            raise ValidationError({
-                "frequency": e,
-                "frequency_kwargs": (
-                    f"These arguments are not valid for the '{self.frequency}' offset."
-                ),
-            }) from e
+            raise ValidationError(
+                {
+                    "frequency": e,
+                    "frequency_kwargs": (
+                        f"These arguments are not valid for the '{self.frequency}' offset."
+                    ),
+                }
+            ) from e
 
     def calculate_next_billing_date(self) -> pd.Timestamp:
         """Calculates the next due date based on the current `next_billing_date` and `frequency`.

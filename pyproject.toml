@@ -49,10 +49,7 @@ dev_template = "{tag}.{ccount}"
 dirty_template = "{tag}.{ccount}+g{sha}.dirty"
 
 [tool.ruff]
-# Ruff's own formatter handles many stylistic concerns (like E501, W292).
-# It's recommended to use `ruff format` instead of `black` for unified formatting and linting.
-# If you *do* use Black, ensure its line length matches.
-line-length = 88 # Standard Black line length
+line-length = 88
 
 # Specifies the target Python version for `UP` (pyupgrade) rules.
 target-version = "py313"
@@ -86,8 +83,6 @@ select = [
   "TID",
   # implicit string concatenation
   "ISC",
-  # flake8-type-checking
-  "TC",
   # comprehensions
   "C4",
   # pygrep-hooks
@@ -246,7 +241,5 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
-  # runtime-cast-value
-  "TC006",
 ]
 

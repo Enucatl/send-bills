@@ -1,13 +1,11 @@
-FROM python:3.13-slim-bookworm
+# ---- Stage 1: The Builder ----
+# Use a full-featured image to build our application artifacts
+FROM python:3.13-slim-bookworm AS builder
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set environment variables for Python and Django settings
-ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE send_bills.project.settings.production
-# Django will collect static files here, which Gunicorn will serve
-ENV DJANGO_STATIC_ROOT /vol/web/staticfiles
+ENV UV_COMPILE_BYTECODE=1
 
-# Install system dependencies required for Python packages (psycopg2-binary, cairosvg)
-# and for running Django (e.g., build tools).
+# Install system dependencies required for building Python packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     build-essential \
@@ -16,49 +14,64 @@ RUN apt-get update \
     libjpeg-dev \
     libxml2-dev \
     pkg-config \
-    postgresql-client \
+    libpq-dev \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd --system appuser
-RUN pip install uv
-
-# Create application directories and set ownership
-# /app will be our WORKDIR, /vol/web/staticfiles is for Django static files
-RUN mkdir -p /app /vol/web/staticfiles \
-    && chown -R appuser:appuser /app /vol/web/staticfiles
-
-# Copy the entrypoint script
-COPY --chown=appuser:appuser entrypoint.sh /app
-RUN chmod +x /app/entrypoint.sh
-
-USER appuser
-ENV HOME=/app
-
-# Set working directory inside the container
 WORKDIR /app
 
-# Copy the requirements file and install Python dependencies
-COPY --chown=appuser:appuser MANIFEST.in .
-COPY --chown=appuser:appuser pyproject.toml .
+# Copy project definition and install dependencies into the venv
+# This is cached better than copying the whole app first
+COPY MANIFEST.in pyproject.toml uv.lock ./
 ARG VERSION=latest
 ENV VERSION=${VERSION}
-# 1. Remove the [tool.setuptools-git-versioning] section
-# 2. Change dynamic = ["version"] to version = "..."
-RUN sed -i '/^\[tools\.setuptools-git-versioning\]/,/^\[/d' pyproject.toml || true \
-    && sed -i '/^\[tools\.setuptools-git-versioning\]/d' pyproject.toml || true \
+# Modify the pyproject.toml to set the version
+RUN sed -i 's/enabled = true/enabled = false' pyproject.toml || true \
     && sed -i "s/dynamic = \\[\"version\"\\]/version = \"${VERSION}\"/" pyproject.toml
-RUN uv sync --all-groups
+RUN uv sync --no-install-project --no-editable
 
-# Install the full app
-COPY --chown=appuser:appuser src/ /app/src/
-RUN uv pip install .
+# Copy the application source code and install it
+COPY src/ src/
+RUN uv sync --no-editable
 
-# Collect static files. Gunicorn will serve these in this setup.
-RUN DJANGO_SETTINGS_MODULE=send_bills.project.settings.development .venv/bin/python src/send_bills/manage.py collectstatic --noinput --clear
+# Create the static files directory before collecting
+# /vol/web is a common pattern for persistent volumes, so we keep it
+RUN mkdir -p /vol/web/staticfiles
+
+# Collect static files using the python from our venv
+RUN DJANGO_STATIC_ROOT=/vol/web/staticfiles DJANGO_SETTINGS_MODULE=send_bills.project.settings.development .venv/bin/python src/send_bills/manage.py collectstatic --noinput --clear
+
+# Copy the entrypoint script for the final stage
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+
+# ---- Stage 2: The Final Image ----
+FROM python:3.13-slim-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    tini \
+    libcairo2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set environment variables for runtime
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=send_bills.project.settings.production \
+    DJANGO_STATIC_ROOT=/vol/web/staticfiles
+
+WORKDIR /app
+
+# Copy artifacts from the builder stage
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/src /app/src
+COPY --from=builder /vol/web/staticfiles /vol/web/staticfiles
+COPY --from=builder /app/entrypoint.sh /app/entrypoint.sh
 
 # Expose the port Gunicorn will listen on
 EXPOSE 8000
 
-# Use the custom entrypoint script
-ENTRYPOINT ["/app/entrypoint.sh"]
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
+  CMD [".venv/bin/python", "-c", "import socket; s = socket.socket(); s.connect(('localhost', 8000))"]
+
+ENTRYPOINT ["tini", "--", "/app/entrypoint.sh"]
