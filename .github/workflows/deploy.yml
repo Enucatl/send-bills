@@ -105,14 +105,13 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-  needs: [build]
-  if: success()
-  permissions:
-    contents: read   # Allows checking out code
-  steps:
-    - name: Trigger Portainer Redeploy
-    # This step runs only if the build and push was successful.
-    # It sends a POST request to a Portainer webhook, which triggers
-    # Portainer to pull the new :latest image and redeploy the service.
-  if: success()
-  run: curl -X POST ${{ secrets.PORTAINER_WEBHOOK_URL }}
+    needs: [build]
+    if: success()
+    permissions:
+      contents: read   # Allows checking out code
+    steps:
+      - name: Trigger Portainer Redeploy
+        # This step runs only if the build and push was successful.
+        # It sends a POST request to a Portainer webhook, which triggers
+        # Portainer to pull the new :latest image and redeploy the service.
+        run: curl -X POST ${{ secrets.PORTAINER_WEBHOOK_URL }}
