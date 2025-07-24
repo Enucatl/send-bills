@@ -3,6 +3,7 @@ name = "send_bills"
 authors = [
 { name = "Enucatl", email = "1423701+Enucatl@users.noreply.github.com" },
 ]
+license = "GPL-3.0-only"
 license-files = [
   "LICENSE",
 ]
