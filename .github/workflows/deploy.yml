@@ -59,8 +59,8 @@ jobs:
         id: generate_tags
         run: |
           VERSION=${{ steps.get_version.outputs.VERSION }}
-          # Strip the '-g<sha>' suffix to get the base version (e.g., 0.5.2)
-          BASE_VERSION=$(echo $VERSION | cut -d'-' -f1)
+          # Strip the '+g<sha>' suffix to get the base version (e.g., 0.5.2)
+          BASE_VERSION=$(echo $VERSION | cut -d'+' -f1)
 
           # Split the base version into major, minor, patch parts
           IFS='.' read -r -a V_PARTS <<< "$BASE_VERSION"
