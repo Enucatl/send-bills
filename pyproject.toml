@@ -39,6 +39,8 @@ build-backend = "setuptools.build_meta"
 dev = [
     "freezegun",
     "pytest",
+    "pytest-django",
+    "pytest-mock",
     "ruff",
     "setuptools-git-versioning",
 ]
@@ -48,6 +50,9 @@ enabled = true
 template = "{tag}.{ccount}"
 dev_template = "{tag}.{ccount}"
 dirty_template = "{tag}.{ccount}+g{sha}.dirty"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "send_bills.project.settings.development"
 
 [tool.ruff]
 line-length = 88
@@ -128,6 +133,8 @@ ignore = [
   "B023",
   # Only works with python >=3.10
   "B905",
+  # already done by ruff format
+  "E501",
   # Logging statement uses f-string
   "G004",
   # Too many arguments to function call

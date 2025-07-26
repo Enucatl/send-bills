@@ -1,4 +1,4 @@
-from .base import *
+from .base import *  # noqa: F403
 
 # --- DEVELOPMENT-SPECIFIC SETTINGS ---
 
@@ -18,10 +18,10 @@ CSRF_TRUSTED_ORIGINS = [
 # Conditionally add the development-only Authelia middleware
 try:
     # Find the index of the middleware it should precede
-    index = MIDDLEWARE.index(
+    index = MIDDLEWARE.index(  # noqa: F405
         "send_bills.project.middleware.CustomHeaderRemoteUserMiddleware"
     )
-    MIDDLEWARE.insert(
+    MIDDLEWARE.insert(  # noqa: F405
         index,
         "send_bills.project.dev_authelia_middleware.DevAutheliaHeaderMiddleware",
     )

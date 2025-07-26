@@ -27,8 +27,7 @@ This project is designed to be run as a containerized service, controlled via a 
 
 - **Backend**: Django, Django REST Framework
 - **Database**: PostgreSQL (recommended), compatible with other Django DBs.
-- **PDF Generation**: `qrbill` for QR-bill data, `cairosvg` for PDF rendering.
-- **Data Handling**: `pandas` for CSV processing and date calculations.
+- **PDF Generation**: `qrbill` for QR-bill data, `cairosvg` for PDF rendering. **Data Handling**: `pandas` for CSV processing and date calculations.
 - **Web Server**: Gunicorn with WhiteNoise for serving static files.
 - **Containerization**: Docker & Docker Compose.
 - **CI/CD**: GitHub Actions.
@@ -178,7 +177,7 @@ uv pip install --python /opt/home/user/venv/send-bills/bin/python -e .[dev]
 
 ## Test
 ```
-DATABASE_URL=$(vault kv get -mount=airflow -field=uri connections/djangodev) /opt/home/user/venv/send-bills/bin/python src/send_bills/manage.py test bills
+DATABASE_URL=$(vault kv get -mount=airflow -field=uri connections/djangodev) /opt/home/user/venv/send-bills/bin/pytest
 ```
 
 ## Run development server
