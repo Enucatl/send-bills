@@ -71,7 +71,6 @@ jobs:
           # (e.g., if version is '0.5.2', $VERSION and $BASE_VERSION are the same)
           TAG_LIST=$( (
           echo "latest"
-          echo "$VERSION"
           echo "$BASE_VERSION"
           echo "$V_MAJOR.$V_MINOR"
           echo "$V_MAJOR"
