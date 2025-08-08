@@ -215,7 +215,7 @@ class MarkOverdueBillsAPIView(APIView):
         # Atomically update all bills that meet the overdue criteria
         updated_count: int = (
             Bill.objects.filter(due_date__lte=now())
-            .exclude(status=Bill.BillStatus.OVERDUE)
+            .exclude(status__in=[Bill.BillStatus.OVERDUE, Bill.BillStatus.PAID])
             .update(status=Bill.BillStatus.OVERDUE)
         )
         logger.info(f"Marked {updated_count} bills as overdue.")

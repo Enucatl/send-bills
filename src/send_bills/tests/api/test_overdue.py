@@ -189,6 +189,13 @@ def test_mark_overdue_bills_no_updates_needed(
         status=Bill.BillStatus.OVERDUE,
         amount=200,
     )
+    bill_paid_past_due = Bill.objects.create(
+        creditor=creditor_fixture,
+        contact=contact_fixture,
+        due_date=today_date - timedelta(days=15),
+        status=Bill.BillStatus.PAID,
+        amount=300,
+    )
 
     response = mark_overdue_view(request_factory.post(mark_overdue_url))
 
@@ -206,6 +213,7 @@ def test_mark_overdue_bills_no_updates_needed(
         Bill.objects.get(due_date=today_date - timedelta(days=30)).status
         == Bill.BillStatus.OVERDUE
     )
+    assert Bill.objects.get(pk=bill_paid_past_due.pk).status == Bill.BillStatus.PAID
 
 
 @freeze_time("2023-10-26")
@@ -259,6 +267,13 @@ def test_mark_overdue_bills_some_updated(
         status=Bill.BillStatus.PENDING,
         amount=500,
     )
+    bill_paid = Bill.objects.create(
+        creditor=creditor2_fixture,
+        contact=contact_fixture,
+        due_date=today_date - timedelta(days=10),
+        status=Bill.BillStatus.PAID,
+        amount=600,
+    )
 
     response = mark_overdue_view(request_factory.post(mark_overdue_url))
 
@@ -273,6 +288,7 @@ def test_mark_overdue_bills_some_updated(
     assert Bill.objects.get(pk=bill3.pk).status == Bill.BillStatus.OVERDUE  # No change
     assert Bill.objects.get(pk=bill4.pk).status == Bill.BillStatus.PENDING  # No change
     assert Bill.objects.get(pk=bill5.pk).status == Bill.BillStatus.OVERDUE
+    assert Bill.objects.get(pk=bill_paid.pk).status == Bill.BillStatus.PAID
 
 
 # --- Test NotifyOverdueBillsAPIView ---
