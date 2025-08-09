@@ -12,6 +12,7 @@ services:
       - DJANGO_EMAIL_HOST_PORT
       - DJANGO_EMAIL_HOST_USER
       - DJANGO_EMAIL_HOST_PASSWORD
+      - SSL_CERT_FILE=/usr/lib/ssl/certs/root_2022_ca.pem
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
