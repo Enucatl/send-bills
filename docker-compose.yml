@@ -12,17 +12,18 @@ services:
       - DJANGO_EMAIL_HOST_PORT
       - DJANGO_EMAIL_HOST_USER
       - DJANGO_EMAIL_HOST_PASSWORD
-      - SSL_CERT_FILE=/usr/lib/ssl/certs/root_2022_ca.pem
+      - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
     restart: unless-stopped
     labels:
+      - "checkmk_monitor=true"
       - "traefik.enable=true"
-      - "traefik.http.routers.bills.rule=Host(`bills.nuc10i7fnh.home.arpa`)"
+      - "traefik.http.routers.bills.rule=Host(`bills.${DOCKER_DOMAIN}`)"
       - "traefik.http.routers.bills.entrypoints=https"
       - "traefik.http.routers.bills.tls=true"
       - "traefik.http.routers.bills.middlewares=authelia@docker,secured@file"
       - "traefik.http.services.bills.loadbalancer.server.port=8000"
     volumes:
-      - /etc/ssl/certs/root_2022_ca.pem:/usr/lib/ssl/certs/root_2022_ca.pem:ro
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
     networks:
       - traefik_proxy
 

@@ -1,7 +1,7 @@
 services:
   bills:
     build:
-      context: . # Build context is the directory where this docker-compose.yml and Dockerfile are located
+      context: .
       dockerfile: Dockerfile
       args:
         VERSION: ${VERSION:-unknown}
