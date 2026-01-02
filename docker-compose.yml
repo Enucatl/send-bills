@@ -1,6 +1,8 @@
 services:
   bills:
     image: ghcr.io/enucatl/bills:latest
+    extra_hosts:
+      - "${DOCKER_DOMAIN}:host-gateway"
     environment:
       - CSRF_TRUSTED_ORIGINS
       - DATABASE_URL

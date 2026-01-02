@@ -189,3 +189,9 @@ DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) .venv/b
 ```
 VERSION=$(uv run setuptools-git-versioning) docker compose up --build
 ```
+
+## Run production docker
+```
+docker compose build --build-arg VERSION=$(uv run setuptools-git-versioning)
+docker compose -f docker-compose.yml up -d
+```
