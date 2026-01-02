@@ -172,20 +172,20 @@ The included GitHub Actions workflow (`.github/workflows/deploy.yml`) automates 
 
 ## Install
 ```
-uv pip install --python /opt/home/user/venv/send-bills/bin/python -e .[dev]
+uv sync --all-extras
 ```
 
 ## Test
 ```
-DATABASE_URL=$(vault kv get -mount=airflow -field=uri connections/djangodev) /opt/home/user/venv/send-bills/bin/pytest
+DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) uv run pytest
 ```
 
 ## Run development server
 ```
-DATABASE_URL=$(vault kv get -mount=airflow -field=uri connections/djangodev) /opt/home/user/venv/send-bills/bin/python src/send_bills/manage.py runserver
+DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) .venv/bin/python src/send_bills/manage.py runserver
 ```
 
 ## Run development docker
 ```
-VERSION=$(/opt/home/user/venv/send-bills/bin/python -m setuptools_git_versioning) docker compose --env-file .env up --build
+VERSION=$(uv run setuptools-git-versioning) docker compose up --build
 ```

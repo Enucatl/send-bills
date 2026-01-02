@@ -15,5 +15,5 @@ class EmailBackend(BaseEmailBackend):
             hasattr(django_settings, "EMAIL_CAFILE")
             and django_settings.EMAIL_CAFILE is not None
         ):
-            ssl_context.load_verify_locations(cafile=django_settings.CA_PATH)
+            ssl_context.load_verify_locations(cafile=django_settings.EMAIL_CAFILE)
             return ssl_context
