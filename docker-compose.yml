@@ -1,6 +1,10 @@
 services:
   bills:
+    extends:
+      file: ../compose-security-baseline/hardening.yml
+      service: hardened-medium
     image: ghcr.io/enucatl/bills:latest
+    cpu_shares: 512
     extra_hosts:
       - "${DOCKER_DOMAIN}:host-gateway"
     environment:
