@@ -5,10 +5,6 @@ on:
     branches:
       - main
 
-env:
-  DOCKERFILE_PATH: Dockerfile
-  DOCKER_IMAGE_NAME: ghcr.io/enucatl/bills
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -84,11 +80,11 @@ jobs:
       security-events: write
     uses: Enucatl/docker-compose-security-baseline/.github/workflows/docker-ci.yml@main
     with:
-      image_name: ${{ env.DOCKER_IMAGE_NAME }}
+      image_name: ghcr.io/enucatl/bills
       version: ${{ needs.test.outputs.version }}
       meta_tags: ${{ needs.test.outputs.meta_tags }}
       context: .
-      dockerfile: ${{ env.DOCKERFILE_PATH }}
+      dockerfile: Dockerfile
       platforms: linux/amd64
       push: true
       build_args: |
