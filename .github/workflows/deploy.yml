@@ -6,22 +6,21 @@ on:
       - main
 
 env:
-  APP_NAME: bills
   DOCKERFILE_PATH: Dockerfile
   DOCKER_IMAGE_NAME: ghcr.io/enucatl/bills
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     permissions:
-      contents: read   # Allows checking out code
-      packages: write  # Allows pushing to GitHub Container Registry (ghcr.io)
-
+      contents: read
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      meta_tags: ${{ steps.tags.outputs.meta_tags }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          # Important: Fetches full history for git describe to work
           fetch-depth: 0
 
       - name: Install uv
@@ -33,7 +32,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13' # Or your desired Python version, e.g., '3.11', '3.12'
+          python-version: '3.13'
 
       - name: Install project dependencies with uv
         run: uv sync --all-extras --dev
@@ -43,32 +42,24 @@ jobs:
         run: |
           VERSION=$(uv run setuptools-git-versioning)
           echo "Detected VERSION: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Run Django tests
         run: DATABASE_URL="sqlite:///:memory:" uv run python src/send_bills/manage.py test bills api
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}          # The GitHub Actions bot username
-          password: ${{ secrets.GITHUB_TOKEN }} # The special token for repo/GHCR access
-
       - name: Generate Docker Tags
-        id: generate_tags
+        id: tags
+        shell: bash
+        env:
+          VERSION: ${{ steps.get_version.outputs.version }}
         run: |
-          VERSION=${{ steps.get_version.outputs.VERSION }}
-          # Strip the '+g<sha>' suffix to get the base version (e.g., 0.5.2)
-          BASE_VERSION=$(echo $VERSION | cut -d'+' -f1)
+          set -euo pipefail
 
-          # Split the base version into major, minor, patch parts
+          BASE_VERSION=$(echo "${VERSION}" | cut -d'+' -f1)
           IFS='.' read -r -a V_PARTS <<< "$BASE_VERSION"
           V_MAJOR=${V_PARTS[0]}
           V_MINOR=${V_PARTS[1]}
 
-          # Create a list of tags. `sort -u` removes any duplicates.
-          # (e.g., if version is '0.5.2', $VERSION and $BASE_VERSION are the same)
           TAG_LIST=$( (
           echo "latest"
           echo "$BASE_VERSION"
@@ -76,28 +67,30 @@ jobs:
           echo "$V_MAJOR"
           ) | sort -u )
 
-          # Build the final multi-line tags string for the docker/build-push-action
-          # by prepending the image name to each tag.
-          FINAL_TAGS=""
-          for TAG in $TAG_LIST; do
-          FINAL_TAGS="${FINAL_TAGS}${{ env.DOCKER_IMAGE_NAME }}:$TAG\n"
-          done
+          {
+            echo "meta_tags<<EOF"
+            for TAG in $TAG_LIST; do
+              echo "type=raw,value=${TAG}"
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-          # Use a special syntax for multiline outputs in GitHub Actions
-          echo "tags<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$FINAL_TAGS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          echo "Generated tags:"
-          echo -e "$FINAL_TAGS"
-
-      - name: Build and push Docker image to GHCR
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ${{ env.DOCKERFILE_PATH }}
-          push: true
-          tags: ${{ steps.generate_tags.outputs.tags }}
-          build-args: |
-            # Pass the calculated version as a build argument to the Dockerfile
-            VERSION=${{ steps.get_version.outputs.VERSION }}
+  docker:
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      security-events: write
+    uses: Enucatl/docker-compose-security-baseline/.github/workflows/docker-ci.yml@main
+    with:
+      image_name: ${{ env.DOCKER_IMAGE_NAME }}
+      version: ${{ needs.test.outputs.version }}
+      meta_tags: ${{ needs.test.outputs.meta_tags }}
+      context: .
+      dockerfile: ${{ env.DOCKERFILE_PATH }}
+      platforms: linux/amd64
+      push: true
+      build_args: |
+        VERSION=${{ needs.test.outputs.version }}
+    secrets: inherit
