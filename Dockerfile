@@ -55,6 +55,9 @@ RUN apt-get update \
     libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
+RUN groupadd --system app \
+    && useradd --system --gid app --create-home --home-dir /app app
+
 # Set environment variables for runtime
 ENV PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=send_bills.project.settings.production \
@@ -62,11 +65,16 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+RUN mkdir -p /vol/web/staticfiles \
+    && chown -R app:app /app /vol/web
+
 # Copy artifacts from the builder stage
-COPY --from=builder /app/.venv /app/.venv
-COPY --from=builder /app/src /app/src
-COPY --from=builder /vol/web/staticfiles /vol/web/staticfiles
-COPY --from=builder /app/entrypoint.sh /app/entrypoint.sh
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder --chown=app:app /app/src /app/src
+COPY --from=builder --chown=app:app /vol/web/staticfiles /vol/web/staticfiles
+COPY --from=builder --chown=app:app /app/entrypoint.sh /app/entrypoint.sh
+
+USER app
 
 # Expose the port Gunicorn will listen on
 EXPOSE 8000
