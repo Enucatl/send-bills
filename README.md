@@ -36,7 +36,6 @@ This project is designed to be run as a containerized service, controlled via a 
 
 ### Prerequisites
 
-- Python 3.11+
 - [uv](https://github.com/astral-sh/uv) (for package management)
 - Docker & Docker Compose (for running the application)
 
