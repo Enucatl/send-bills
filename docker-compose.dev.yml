@@ -4,10 +4,52 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VERSION: ${VERSION:-unknown}
+        VERSION: ${VERSION:-0.0.0}
+    env_file:
+      - ./.env.dev
     environment:
-      - DATABASE_URL
-      - DJANGO_SETTINGS_MODULE=send_bills.project.settings.development
+      DATABASE_HOST: db
+      DATABASE_NAME: bills_dev
+      DATABASE_PASSWORD_FILE: ""
+      DATABASE_USER: bills
+      DJANGO_ALLOWED_HOSTS: localhost,docker.home.arpa
+      DJANGO_EMAIL_HOST: docker.home.arpa
+      DJANGO_EMAIL_HOST_PASSWORD_FILE: /run/secrets/django_email_host_password
+      DJANGO_SETTINGS_MODULE: send_bills.project.settings.development
+      DJANGO_SECRET_KEY_FILE: ""
     ports:
-      - 8000:8000
+      - 8500:8000
     restart: unless-stopped
+    secrets:
+      - django_email_host_password
+  scheduler:
+    env_file:
+      - ./.env.dev
+    environment:
+      DATABASE_HOST: db
+      DATABASE_NAME: bills_dev
+      DATABASE_PASSWORD_FILE: ""
+      DATABASE_USER: bills
+      DJANGO_ALLOWED_HOSTS: localhost,docker.home.arpa
+      DJANGO_EMAIL_HOST: docker.home.arpa
+      DJANGO_EMAIL_HOST_PASSWORD_FILE: /run/secrets/django_email_host_password
+      DJANGO_SETTINGS_MODULE: send_bills.project.settings.development
+      DJANGO_SECRET_KEY_FILE: ""
+    secrets:
+      - django_email_host_password
+  db:
+    env_file:
+      - ./.env.dev
+    environment:
+      POSTGRES_DB: bills_dev
+      POSTGRES_PASSWORD_FILE: ""
+      POSTGRES_USER: bills
+    volumes:
+      - bills_db_dev:/var/lib/postgresql
+
+volumes:
+  bills_db_dev:
+
+secrets:
+  django_email_host_password:
+    file: ./secrets/django_email_host_password

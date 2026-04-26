@@ -10,6 +10,8 @@ from pathlib import Path
 
 import dj_database_url
 
+from .utils import build_database_url, read_env_or_file
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # Note: We go up two levels now: from base.py -> settings -> project root
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -75,8 +77,8 @@ TEMPLATES = [
 WSGI_APPLICATION = "send_bills.project.wsgi.application"
 
 # --- DATABASE CONFIGURATION ---
-# Use DATABASE_URL from environment
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# Use DATABASE_URL from environment or build a URL from database parts.
+DATABASE_URL = build_database_url()
 if DATABASE_URL is not None:
     DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 else:
@@ -115,7 +117,7 @@ EMAIL_BACKEND = "send_bills.project.email.EmailBackend"
 EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST")
 EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "10125"))
 EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD")
+EMAIL_HOST_PASSWORD = read_env_or_file("DJANGO_EMAIL_HOST_PASSWORD")
 
 
 def _env_bool(name: str, default: str = "True") -> bool:

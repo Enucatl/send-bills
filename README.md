@@ -60,10 +60,12 @@ Follow these steps to get a local development server running.
     ```
 
 3.  **Configure Environment Variables:**
-    The application uses `dj-database-url` to configure the database. Create a `.env` file in the root directory for your local environment variables.
+    The application uses `dj-database-url` to configure the database. Create a `.env` file in the root directory for your non-secret environment variables.
     ```env
     # .env
-    DATABASE_URL=postgres://user:password@localhost:5432/bills_db
+    DATABASE_NAME=bills_db
+    DATABASE_USER=user
+    DATABASE_HOST=localhost
     # DJANGO_SETTINGS_MODULE defaults to development, so it's not strictly needed here.
     ```
     For a simpler start, you can use SQLite:
@@ -86,20 +88,52 @@ Follow these steps to get a local development server running.
 
 ### 2. Running with Docker Compose
 
-For a more production-like local environment, you can use Docker Compose.
+Docker Compose supports two modes:
 
-1.  **Create a `.env` file** with your database configuration:
-    ```env
-    # .env
-    DATABASE_URL=postgres://user:password@host.home.arpa:5432/bills_db
-    ```
+#### Production-style Compose
 
-2.  **Build and Run the Container:**
-    The `docker-compose.dev.yml` is configured for local development.
-    ```bash
-    docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-    ```
-    The application will be available at `http://localhost:8000/`.
+1. Create a `.env` file with non-secret database settings:
+   ```env
+   # .env
+   DATABASE_NAME=bills
+   DATABASE_USER=bills
+   DATABASE_HOST=host.home.arpa
+   DATABASE_PORT=5432
+   ```
+2. Create these secret files next to the compose file:
+   ```text
+   secrets/django_secret_key
+   secrets/django_email_host_password
+   secrets/postgres_password
+   ```
+3. Run the production compose stack:
+   ```bash
+   docker compose -f docker-compose.yml up -d
+   ```
+
+#### Development Compose
+
+1. Create `.env.dev` with env vars for local development:
+   ```env
+   # .env.dev
+   DOCKER_DOMAIN=docker.home.arpa
+   DATABASE_HOST=db
+   DATABASE_NAME=bills_dev
+   DATABASE_USER=bills
+   DATABASE_PASSWORD=...
+   DJANGO_EMAIL_HOST=${DOCKER_DOMAIN}
+   DJANGO_EMAIL_HOST_USER=matteo.abis@protonmail.com
+   DJANGO_SECRET_KEY=...
+   POSTGRES_PASSWORD=...
+   POSTGRES_DB=bills_dev
+   POSTGRES_USER=bills
+   ```
+   Store the SMTP password in `secrets/django_email_host_password`.
+2. Start the development stack:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+   ```
+3. The application will be available at `http://localhost:8500/`.
 
 ## ⚙️ Usage & Workflow
 
@@ -143,14 +177,18 @@ This application is built to be deployed as a Docker container.
 
 For production, you must configure the following environment variables:
 
-- `DJANGO_SECRET_KEY`: A long, random string.
+- `DJANGO_SECRET_KEY_FILE`: Path to a file containing the secret key.
 - `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hostnames (e.g., `bills.example.com`).
 - `CSRF_TRUSTED_ORIGINS`: Comma-separated list of trusted origins (e.g., `https://bills.example.com`).
-- `DATABASE_URL`: The full connection string for your PostgreSQL database.
+- `DATABASE_HOST`: Database host name.
+- `DATABASE_PORT`: Database port, usually `5432`.
+- `DATABASE_NAME`: Database name.
+- `DATABASE_USER`: Database user name.
+- `DATABASE_PASSWORD_FILE`: Path to a file containing the database password.
 - `DJANGO_EMAIL_HOST`: Your SMTP server hostname.
 - `DJANGO_EMAIL_PORT`: Your SMTP server port.
 - `DJANGO_EMAIL_HOST_USER`: Your SMTP username.
-- `DJANGO_EMAIL_HOST_PASSWORD`: Your SMTP password.
+- `DJANGO_EMAIL_HOST_PASSWORD_FILE`: Path to a file containing your SMTP password.
 
 ### Database Cutover
 
@@ -197,6 +235,7 @@ DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) .venv/b
 ```
 VERSION=$(uv run setuptools-git-versioning) docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
+`VERSION` is a build argument here. The image bakes it in, so there is no separate runtime export step.
 
 ## Run production docker
 ```

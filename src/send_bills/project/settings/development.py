@@ -1,3 +1,5 @@
+import os
+
 from .base import *  # noqa: F403
 
 # --- DEVELOPMENT-SPECIFIC SETTINGS ---
@@ -8,8 +10,9 @@ SECRET_KEY = "django-insecure-ep!^%_su6p8t0i79b4rc!1pe_%jd&btjlgsgry=b5$x^o773mm
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# Allow all hosts and origins for local development convenience
-ALLOWED_HOSTS = ["*"]
+# Allow local access from the Compose host and the home.arpa domain.
+allowed_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS")
+ALLOWED_HOSTS = allowed_hosts.split(",") if allowed_hosts else ["*"]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",

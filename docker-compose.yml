@@ -7,24 +7,28 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VERSION: ${VERSION:-unknown}
+        VERSION: ${VERSION:-0.0.0}
     image: ghcr.io/enucatl/bills:latest
     cpu_shares: 512
     extra_hosts:
       - "${DOCKER_DOMAIN}:host-gateway"
     environment:
       - CSRF_TRUSTED_ORIGINS
-      - DATABASE_URL=postgres://bills:${POSTGRES_PASSWORD}@db:5432/bills
       - DJANGO_ALLOWED_HOSTS
       - DJANGO_EMAIL_CAFILE=/etc/ssl/certs/ca-certificates.crt
       - DJANGO_EMAIL_HOST
-      - DJANGO_EMAIL_HOST_PASSWORD
+      - DJANGO_EMAIL_HOST_PASSWORD_FILE=/run/secrets/django_email_host_password
       - DJANGO_EMAIL_PORT
       - DJANGO_EMAIL_HOST_USER
-      - DJANGO_SECRET_KEY
+      - DJANGO_SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DJANGO_SETTINGS_MODULE=send_bills.project.settings.production
       - DJANGO_STATIC_ROOT=/vol/web/staticfiles
       - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      - DATABASE_HOST=db
+      - DATABASE_NAME=bills
+      - DATABASE_PASSWORD_FILE=/run/secrets/postgres_password
+      - DATABASE_PORT=5432
+      - DATABASE_USER=bills
     restart: unless-stopped
     labels:
       - "checkmk_monitor=true"
@@ -39,6 +43,10 @@ services:
       - /tmp:rw,nosuid,noexec,mode=1777,size=16m
     volumes:
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+    secrets:
+      - django_email_host_password
+      - django_secret_key
+      - postgres_password
     networks:
       - traefik_proxy
       - default
@@ -54,24 +62,28 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VERSION: ${VERSION:-unknown}
+        VERSION: ${VERSION:-0.0.0}
     image: ghcr.io/enucatl/bills:latest
     depends_on:
       db:
         condition: service_healthy
     environment:
       - CSRF_TRUSTED_ORIGINS
-      - DATABASE_URL=postgres://bills:${POSTGRES_PASSWORD}@db:5432/bills
       - DJANGO_ALLOWED_HOSTS
       - DJANGO_EMAIL_CAFILE=/etc/ssl/certs/ca-certificates.crt
       - DJANGO_EMAIL_HOST
-      - DJANGO_EMAIL_HOST_PASSWORD
+      - DJANGO_EMAIL_HOST_PASSWORD_FILE=/run/secrets/django_email_host_password
       - DJANGO_EMAIL_PORT
       - DJANGO_EMAIL_HOST_USER
-      - DJANGO_SECRET_KEY
+      - DJANGO_SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DJANGO_SETTINGS_MODULE=send_bills.project.settings.production
       - DJANGO_STATIC_ROOT=/vol/web/staticfiles
       - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      - DATABASE_HOST=db
+      - DATABASE_NAME=bills
+      - DATABASE_PASSWORD_FILE=/run/secrets/postgres_password
+      - DATABASE_PORT=5432
+      - DATABASE_USER=bills
     entrypoint:
       - /bin/sh
       - -lc
@@ -83,8 +95,21 @@ services:
           sleep 3600;
         done
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          ".venv/bin/python -c 'from django.db import connections; connections[\"default\"].cursor()'",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     tmpfs:
       - /tmp:rw,nosuid,noexec,mode=1777,size=16m
+    secrets:
+      - django_email_host_password
+      - django_secret_key
+      - postgres_password
     networks:
       - default
 
@@ -93,7 +118,7 @@ services:
     environment:
       - POSTGRES_DB=bills
       - POSTGRES_USER=bills
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bills -d bills"]
       interval: 5s
@@ -101,8 +126,18 @@ services:
       retries: 20
     volumes:
       - bills_db:/var/lib/postgresql
+    secrets:
+      - postgres_password
     networks:
       - default
+
+secrets:
+  django_email_host_password:
+    file: ./secrets/django_email_host_password
+  django_secret_key:
+    file: ./secrets/django_secret_key
+  postgres_password:
+    file: ./secrets/postgres_password
 
 networks:
   default:

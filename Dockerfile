@@ -49,6 +49,8 @@ RUN chmod +x /app/entrypoint.sh
 # ---- Stage 2: The Final Image ----
 FROM python:3.13-slim-bookworm
 
+ARG VERSION=0.0.0
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     tini \
@@ -60,8 +62,10 @@ RUN groupadd --system app \
 
 # Set environment variables for runtime
 ENV PYTHONUNBUFFERED=1 \
+    VERSION=${VERSION} \
     DJANGO_SETTINGS_MODULE=send_bills.project.settings.production \
-    DJANGO_STATIC_ROOT=/vol/web/staticfiles
+    DJANGO_STATIC_ROOT=/vol/web/staticfiles \
+    XDG_CACHE_HOME=/tmp/.cache
 
 WORKDIR /app
 

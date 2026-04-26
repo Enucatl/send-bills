@@ -4,19 +4,22 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
+from .utils import build_database_url, read_env_or_file
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
 # Fetch sensitive values from environment variables.
 # The application will fail to start if these are not set.
-SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
+SECRET_KEY = read_env_or_file("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set in production.")
 ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split(",")
 CSRF_TRUSTED_ORIGINS = os.environ["CSRF_TRUSTED_ORIGINS"].split(",")
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = build_database_url()
 if not DATABASE_URL:
-    raise ImproperlyConfigured("DATABASE_URL must be set in production.")
+    raise ImproperlyConfigured("Database configuration must be set in production.")
 
 DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
