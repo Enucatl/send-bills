@@ -32,6 +32,7 @@ services:
     restart: unless-stopped
     labels:
       - "checkmk_monitor=true"
+      - "traefik.docker.network=traefik_proxy"
       - "traefik.enable=true"
       - "traefik.http.routers.bills.rule=Host(`bills.${DOCKER_DOMAIN}`)"
       - "traefik.http.routers.bills.entrypoints=https"
