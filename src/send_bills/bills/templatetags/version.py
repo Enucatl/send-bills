@@ -6,4 +6,4 @@ register = template.Library()
 
 @register.simple_tag
 def version():
-    return os.environ.get("VERSION", "unknown")
+    return os.environ.get("VERSION") or "unknown"

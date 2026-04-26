@@ -26,8 +26,18 @@ COPY MANIFEST.in pyproject.toml uv.lock ./
 ARG VERSION=latest
 ENV VERSION=${VERSION}
 # Modify the pyproject.toml to set the version
-RUN sed -i 's/enabled = true/enabled = false' pyproject.toml || true \
-    && sed -i "s/dynamic = \\[\"version\"\\]/version = \"${VERSION}\"/" pyproject.toml
+RUN VERSION="${VERSION:-0.0.0}" \
+    python - <<'PY'
+from pathlib import Path
+import os
+import re
+
+path = Path("pyproject.toml")
+text = path.read_text()
+text = text.replace("enabled = true", "enabled = false")
+text = re.sub(r'dynamic = \["version"\]', f'version = "{os.environ["VERSION"]}"', text, count=1)
+path.write_text(text)
+PY
 RUN uv sync --no-install-project --no-editable
 
 # Copy the application source code and install it

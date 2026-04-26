@@ -11,3 +11,9 @@ def test_version_tag_falls_back_to_unknown(monkeypatch):
     monkeypatch.delenv("VERSION", raising=False)
 
     assert version() == "unknown"
+
+
+def test_version_tag_treats_empty_env_as_unknown(monkeypatch):
+    monkeypatch.setenv("VERSION", "")
+
+    assert version() == "unknown"

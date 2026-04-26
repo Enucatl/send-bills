@@ -233,17 +233,16 @@ DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) .venv/b
 
 ## Run development docker
 ```
-VERSION=$(uv run setuptools-git-versioning) docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+VERSION=$(uv run --with setuptools-git-versioning setuptools-git-versioning) docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 `VERSION` is a build argument here. The image bakes it in, so there is no separate runtime export step.
 
 ## Run production docker
 ```
-docker compose build --build-arg VERSION=$(uv run setuptools-git-versioning)
+docker compose build --build-arg VERSION=$(uv run --with setuptools-git-versioning setuptools-git-versioning)
 docker compose -f docker-compose.yml up -d
 ```
 
 ## Security baseline
 
 This compose project uses the shared [docker-compose-security-baseline](https://github.com/Enucatl/docker-compose-security-baseline) for common container hardening defaults, including capabilities, no-new-privileges, memory/swap, and PID limits.
-
