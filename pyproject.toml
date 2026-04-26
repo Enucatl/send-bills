@@ -8,7 +8,7 @@ license-files = [
   "LICENSE",
 ]
 readme = "README.md"
-requires-python = ">= 3.13"
+requires-python = ">= 3.13, < 3.14"
 dependencies = [
   "cairosvg",
   "click",
@@ -19,7 +19,7 @@ dependencies = [
   "Jinja2",
   "mixer",
   "pandas",
-  "psycopg2-binary",
+  "psycopg[binary]",
   "pyarrow",
   "python-stdnum",
   "qrbill",

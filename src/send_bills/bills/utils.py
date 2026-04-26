@@ -70,12 +70,9 @@ def generate_attachment(
 
 
 def send_overdue_email(bill: Bill) -> int:
-    """Sends an overdue bill notification email to the creditor.
+    """Sends an overdue bill notification email to the contact.
 
     This function generates a PDF of the overdue bill and attaches it to the email.
-    Note: The current implementation sends the overdue email *to the creditor*.
-    Typically, overdue notices are sent to the *contact* (debtor).
-    Consider reviewing the `to` field if the intention is to notify the debtor.
 
     Args:
         bill: The Bill object that is overdue.
@@ -96,9 +93,8 @@ def send_overdue_email(bill: Bill) -> int:
         subject=subject,
         body=body,
         from_email=bill.creditor.email,  # Sender
-        to=[
-            bill.creditor.email
-        ],  # Recipient (currently creditor, typically should be contact.email)
+        to=[bill.contact.email],
+        cc=[bill.creditor.email],
         attachments=[attachment],
     )
     return email.send(fail_silently=False)

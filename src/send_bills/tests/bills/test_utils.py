@@ -7,6 +7,7 @@ from django.core.mail import EmailAttachment
 from send_bills.bills.models import Bill
 from send_bills.bills.utils import (
     generate_attachment,
+    send_overdue_email,
     send_bill_email,
     generate_pdf,
 )
@@ -64,7 +65,7 @@ def test_generate_pdf(mocker, bill_fixture):
 
     # Verify cairosvg.svg2pdf was called correctly
     mock_svg2pdf.assert_called_once()
-    args, kwargs = mock_svg2pdf.call_args
+    _, kwargs = mock_svg2pdf.call_args
 
     assert kwargs["bytestring"] == b"<svg>Mock SVG</svg>"
     assert isinstance(kwargs["write_to"], io.BytesIO)
@@ -156,3 +157,35 @@ def test_send_bill_email(
 
     # Verify the email was sent
     mock_email_instance.send.assert_called_once_with(fail_silently=False)
+
+
+def test_send_overdue_email(mocker, bill_fixture, creditor_fixture, contact_fixture):
+    mock_pdf_io = io.BytesIO(b"mock pdf bytes")
+    mocker.patch("send_bills.bills.utils.generate_pdf", return_value=mock_pdf_io)
+
+    mock_attachment = mocker.MagicMock(spec=EmailAttachment)
+    mocker.patch(
+        "send_bills.bills.utils.generate_attachment", return_value=mock_attachment
+    )
+
+    mock_email_message = mocker.patch("send_bills.bills.utils.EmailMessage")
+    mock_email_instance = mock_email_message.return_value
+    mock_email_instance.send.return_value = 1
+
+    mock_render_to_string = mocker.patch("send_bills.bills.utils.render_to_string")
+    mock_render_to_string.side_effect = [
+        "Overdue Subject",
+        "Overdue Body",
+    ]
+
+    result = send_overdue_email(bill_fixture)
+
+    assert result == 1
+    mock_email_message.assert_called_once_with(
+        subject="Overdue Subject",
+        body="Overdue Body",
+        from_email=creditor_fixture.email,
+        to=[contact_fixture.email],
+        cc=[creditor_fixture.email],
+        attachments=[mock_attachment],
+    )

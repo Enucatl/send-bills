@@ -326,7 +326,7 @@ class Bill(BaseBill):
         db_index=True,
         editable=False,
         max_length=27,
-        help_text="Unique RF-Creditor Reference for the bill.",
+        help_text="RF-Creditor reference for the bill.",
     )
     status: models.CharField = models.CharField(
         max_length=100, choices=BillStatus.choices, default=BillStatus.PENDING
@@ -337,6 +337,12 @@ class Bill(BaseBill):
     )
     sent_at: models.DateTimeField = models.DateTimeField(null=True, blank=True)
     paid_at: models.DateTimeField = models.DateTimeField(null=True, blank=True)
+    overdue_notified_at: models.DateTimeField = models.DateTimeField(
+        null=True, blank=True
+    )
+    overdue_notification_count: models.PositiveIntegerField = (
+        models.PositiveIntegerField(default=0)
+    )
 
     def _generate_reference_number(self) -> str:
         """Generates a unique RF-Creditor reference number for the bill.

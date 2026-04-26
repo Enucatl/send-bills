@@ -79,6 +79,13 @@ WSGI_APPLICATION = "send_bills.project.wsgi.application"
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL is not None:
     DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # --- INTERNATIONALIZATION ---
 
@@ -109,7 +116,13 @@ EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST")
 EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "10125"))
 EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_HOST_PASSWORD")
-EMAIL_USE_TLS = bool(os.environ.get("DJANGO_EMAIL_USE_TLS", "True"))
+
+
+def _env_bool(name: str, default: str = "True") -> bool:
+    return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
+EMAIL_USE_TLS = _env_bool("DJANGO_EMAIL_USE_TLS", "True")
 EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "60"))
 EMAIL_SSL_KEYFILE = os.environ.get("DJANGO_EMAIL_SSL_KEYFILE")
 EMAIL_SSL_CERTFILE = os.environ.get("DJANGO_EMAIL_SSL_CERTFILE")

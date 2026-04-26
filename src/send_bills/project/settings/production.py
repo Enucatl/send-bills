@@ -1,5 +1,8 @@
 import os
 
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+
 from .base import *  # noqa: F403
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -10,6 +13,12 @@ DEBUG = False
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split(",")
 CSRF_TRUSTED_ORIGINS = os.environ["CSRF_TRUSTED_ORIGINS"].split(",")
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise ImproperlyConfigured("DATABASE_URL must be set in production.")
+
+DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
 # --- PRODUCTION SECURITY SETTINGS ---
 # Enforce secure cookies

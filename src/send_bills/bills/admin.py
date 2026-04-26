@@ -128,7 +128,13 @@ class BillAdmin(admin.ModelAdmin):
         "amount",
     )
     # The reference number is now auto-generated, so make it read-only
-    readonly_fields: Tuple[str] = ("reference_number", "created_at", "sent_at")
+    readonly_fields: Tuple[str] = (
+        "reference_number",
+        "created_at",
+        "sent_at",
+        "overdue_notified_at",
+        "overdue_notification_count",
+    )
     date_hierarchy: str = (
         "billing_date"  # Use billing_date as the primary date for drill-down
     )
@@ -155,6 +161,8 @@ class BillAdmin(admin.ModelAdmin):
                     "created_at",
                     "sent_at",
                     "paid_at",
+                    "overdue_notified_at",
+                    "overdue_notification_count",
                 )
             },
         ),

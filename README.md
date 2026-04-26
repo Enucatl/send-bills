@@ -6,7 +6,7 @@
 
 A robust and automated Django application for managing, generating, and sending invoices, with first-class support for **Swiss QR-Bills** and automated payment reconciliation.
 
-This project is designed to be run as a containerized service, controlled via a powerful Django admin interface and automated through a set of REST API endpoints. It's perfect for small businesses, freelancers, or associations that need a streamlined invoicing workflow.
+This project is designed to be run as a containerized service, controlled via a powerful Django admin interface and automated through a Django management command. It's perfect for small businesses, freelancers, or associations that need a streamlined invoicing workflow.
 
 
 ## ✨ Key Features
@@ -18,7 +18,7 @@ This project is designed to be run as a containerized service, controlled via a 
     - Dispatches newly generated bills to contacts via email, with the PDF invoice attached.
     - Sends automated overdue reminders for unpaid bills.
 - **Automated Payment Reconciliation**: Upload your bank's transaction CSV file to automatically match payments to open invoices and mark them as paid.
-- **REST API for Automation**: A set of secure API endpoints to trigger billing tasks, perfect for `cron` jobs or other scheduled task runners.
+- **Automated Billing Command**: A single management command to trigger billing tasks, perfect for `cron` jobs or other scheduled task runners.
 - **Containerized & Production-Ready**: Comes with `Dockerfile` and `docker-compose.yml` configurations for easy deployment.
 - **Secure Authentication**: Designed to integrate seamlessly with reverse-proxy authentication systems like Authelia.
 - **CI/CD Pipeline**: Includes a GitHub Actions workflow for automated testing, Docker image building, and deployment to GitHub Container Registry.
@@ -95,9 +95,9 @@ For a more production-like local environment, you can use Docker Compose.
     ```
 
 2.  **Build and Run the Container:**
-    The `docker-compose.override.yml` is configured for local development.
+    The `docker-compose.dev.yml` is configured for local development.
     ```bash
-    docker-compose up --build
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
     ```
     The application will be available at `http://localhost:8000/`.
 
@@ -113,23 +113,13 @@ The primary interface for this application is the Django Admin. The core workflo
     - **One-off Bills**: Navigate to `Bills` and click "Add bill". Fill in the details. The status will default to `Pending`.
     - **Recurring Bills**: Navigate to `Recurring bills` and "Add recurring bill". Define a template, amount, and a `frequency` (e.g., `MonthEnd`, `QuarterBegin`).
 
-3.  **Automate Billing Tasks (via API)**:
-    The following API endpoints are designed to be called by a scheduler like `cron`.
-
-    - `POST /api/generate-recurring-bills/`: Checks all active recurring schedules and creates new `Bill` instances for any that are due.
-    - `POST /api/send-pending-bills/`: Finds all bills with `Pending` status, generates PDFs, and emails them to the contacts.
-    - `POST /api/mark-overdue-bills/`: Scans for sent bills whose due date has passed and marks them as `Overdue`.
-    - `POST /api/notify-overdue-bills/`: Sends email reminders for all bills marked as `Overdue`.
-
-    **Example `cron` setup:**
-    ```cron
-    # Daily tasks
-    0 2 * * * curl -X POST http://your-app-url/api/mark-overdue-bills/
-    0 3 * * * curl -X POST http://your-app-url/api/generate-recurring-bills/
-    0 4 * * * curl -X POST http://your-app-url/api/send-pending-bills/
-    # Weekly reminder
-    0 5 * * 1 curl -X POST http://your-app-url/api/notify-overdue-bills/
+3.  **Automate Billing Tasks**:
+    Run the lifecycle with one command:
+    ```bash
+    python src/send_bills/manage.py process_bills
     ```
+
+    A scheduler service can run this command on a fixed interval.
 
 4.  **Reconcile Payments**:
     - In the `Creditors` admin list view, click the **"Upload CSV"** button.
@@ -141,8 +131,8 @@ The primary interface for this application is the Django Admin. The core workflo
 The project has a comprehensive test suite. To run the tests:
 
 ```bash
-# Set a temporary in-memory database and run tests for the `bills` and `api` apps
-DATABASE_URL="sqlite:///:memory:" uv run python src/send_bills/manage.py test bills api
+# Run the pytest suite with a temporary in-memory database
+DATABASE_URL="sqlite:///:memory:" uv run pytest src/send_bills/tests
 ```
 
 ## 🚢 Deployment
@@ -162,6 +152,25 @@ For production, you must configure the following environment variables:
 - `DJANGO_EMAIL_HOST_USER`: Your SMTP username.
 - `DJANGO_EMAIL_HOST_PASSWORD`: Your SMTP password.
 
+### Database Cutover
+
+When moving from the old external Postgres database to the new in-stack `db`
+service, do a short downtime dump/restore:
+
+1. Stop the application container so it stops writing to the old database.
+2. Dump the old database from the current production connection:
+   ```bash
+   pg_dump --format=custom --no-owner --no-acl "$OLD_DATABASE_URL" > bills.dump
+   ```
+3. Start the new `db` service only.
+4. Restore the dump into the new instance:
+   ```bash
+   pg_restore --clean --if-exists --no-owner --dbname "$NEW_DATABASE_URL" bills.dump
+   ```
+5. Point production `DATABASE_URL` at the new in-stack database and start the
+   `bills` and `scheduler` services.
+6. Verify admin access and row counts before deleting the dump.
+
 ### CI/CD Pipeline
 
 The included GitHub Actions workflow (`.github/workflows/deploy.yml`) automates the following process on every push to `main`:
@@ -176,7 +185,7 @@ uv sync --all-extras
 
 ## Test
 ```
-DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) uv run pytest
+DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) uv run pytest src/send_bills/tests
 ```
 
 ## Run development server
@@ -186,7 +195,7 @@ DATABASE_URL=$(vault kv get -field=uri kv/airflow/connections/djangodev) .venv/b
 
 ## Run development docker
 ```
-VERSION=$(uv run setuptools-git-versioning) docker compose up --build
+VERSION=$(uv run setuptools-git-versioning) docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 ## Run production docker
