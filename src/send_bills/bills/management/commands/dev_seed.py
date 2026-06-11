@@ -29,6 +29,8 @@ class Command(BaseCommand):
             email="matteo.abis@protonmail.com",
             defaults={
                 "name": "Matteo Abis",
+                "street": "Example Street",
+                "house_num": "1",
                 "city": "Zurich",
                 "pcode": "8000",
                 "country": "CH",

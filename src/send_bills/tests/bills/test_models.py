@@ -48,11 +48,15 @@ def test_creditor_creation():
         name="New Creditor",
         email="new@example.com",
         iban="IT60X0542811101000000123456",
+        street="Rue du Rhone",
+        house_num="8",
         city="Geneva",
         country="CH",
         pcode="1200",
     )
     assert creditor.name == "New Creditor"
+    assert creditor.street == "Rue du Rhone"
+    assert creditor.house_num == "8"
     assert creditor.email == "new@example.com"
     assert creditor.iban == "IT60X0542811101000000123456"
     assert creditor.created_at is not None

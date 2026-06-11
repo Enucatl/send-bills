@@ -92,6 +92,10 @@ class Creditor(models.Model):
     """Represents the creditor (bill issuer) details."""
 
     name: models.CharField = models.CharField(max_length=70)
+    street: models.CharField = models.CharField(max_length=70, blank=True, default="")
+    house_num: models.CharField = models.CharField(
+        max_length=16, blank=True, default=""
+    )
     pcode: models.CharField = models.CharField(max_length=16)
     city: models.CharField = models.CharField(max_length=35)
     country: models.CharField = models.CharField(max_length=2)

@@ -71,6 +71,24 @@ def test_generate_pdf(mocker, bill_fixture):
     assert isinstance(kwargs["write_to"], io.BytesIO)
 
 
+def test_generate_pdf_includes_creditor_street_address(mocker, bill_fixture):
+    """Test that the creditor street address is passed to the QR payload builder."""
+    mock_qrbill = mocker.patch("qrbill.QRBill", side_effect=MockQRBill)
+    mocker.patch("cairosvg.svg2pdf", side_effect=mock_cairosvg_svg2pdf)
+
+    generate_pdf(bill_fixture)
+
+    _, kwargs = mock_qrbill.call_args
+    assert kwargs["creditor"] == {
+        "city": bill_fixture.creditor.city,
+        "country": bill_fixture.creditor.country,
+        "house_num": bill_fixture.creditor.house_num,
+        "name": bill_fixture.creditor.name,
+        "pcode": bill_fixture.creditor.pcode,
+        "street": bill_fixture.creditor.street,
+    }
+
+
 def test_generate_attachment():
     """
     Test that generate_attachment correctly creates an EmailAttachment from a PDF byte stream.

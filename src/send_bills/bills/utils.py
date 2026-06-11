@@ -23,8 +23,10 @@ def generate_pdf(bill: Bill) -> io.BytesIO:
     creditor_data: Dict[str, str] = {
         "city": bill.creditor.city,
         "country": bill.creditor.country,
+        "house_num": bill.creditor.house_num,
         "name": bill.creditor.name,
         "pcode": bill.creditor.pcode,
+        "street": bill.creditor.street,
     }
     # Initialize QRBill with data from the Bill object
     q = qrbill.QRBill(

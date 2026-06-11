@@ -27,6 +27,8 @@ class CreditorAdmin(admin.ModelAdmin):
         "name",
         "email",
         "iban",
+        "street",
+        "house_num",
         "city",
         "country",
         "created_at",

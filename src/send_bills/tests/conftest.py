@@ -28,6 +28,8 @@ def creditor_fixture(db):
     """Creates a default Creditor instance for tests."""
     return Creditor.objects.create(
         name="Test Creditor AG",
+        street="Bahnhofstrasse",
+        house_num="1",
         city="Zurich",
         pcode="8000",
         country="CH",
@@ -41,6 +43,8 @@ def creditor2_fixture(db):
     """Creates a second Creditor instance for tests."""
     return Creditor.objects.create(
         name="Test Creditor 2",
+        street="Seestrasse",
+        house_num="10",
         city="Zurich",
         pcode="8000",
         country="CH",
