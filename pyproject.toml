@@ -11,13 +11,10 @@ readme = "README.md"
 requires-python = ">= 3.13, < 3.14"
 dependencies = [
   "cairosvg",
-  "click",
   "dj-database-url",
   "django >= 6, < 7",
-  "djangorestframework",
   "gunicorn",
   "Jinja2",
-  "mixer",
   "pandas",
   "psycopg[binary]",
   "pyarrow",
@@ -37,7 +34,7 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 dev = [
-    "freezegun",
+    "mixer",
     "pytest",
     "pytest-django",
     "pytest-mock",

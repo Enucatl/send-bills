@@ -25,9 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
     "send_bills.bills.apps.BillsConfig",
-    "send_bills.api.apps.ApiConfig",
 ]
 
 MIDDLEWARE = [
@@ -45,17 +43,6 @@ MIDDLEWARE = [
 AUTHENTICATION_BACKENDS = [
     "send_bills.project.backends.CustomRemoteUserBackend",
 ]
-
-REST_FRAMEWORK = {
-    # Use TokenAuthentication for scripts/services and SessionAuthentication
-    # for calls from a logged-in browser session.
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
-    # By default, require all API endpoints to be authenticated.
-    "DEFAULT_PERMISSION_CLASSES": [
-        # "rest_framework.permissions.IsAuthenticated",
-        "rest_framework.permissions.AllowAny",
-    ],
-}
 
 ROOT_URLCONF = "send_bills.project.urls"
 

@@ -77,7 +77,7 @@ class Command(BaseCommand):
         if options["send_email"]:
             try:
                 sent_count = send_bill_email(bill)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.stdout.write(
                     self.style.WARNING(f"Example email was not sent: {exc}")
                 )

@@ -52,24 +52,13 @@ class DevAutheliaHeaderMiddleware:
             # Ensure the devuser exists in the database.
             # RemoteUserBackend will handle actual authentication and creation,
             # but pre-creating here ensures the email is set on first creation.
-            try:
-                user = User.objects.get(username=dev_username)
-            except User.DoesNotExist:
-                # If the user doesn't exist, create it.
-                # The `CustomRemoteUserBackend` (if configured) will then handle
-                # setting `is_staff` and `is_superuser` and an unusable password.
-                user, created = User.objects.get_or_create(
-                    username=dev_username,
-                    defaults={
-                        "email": dev_email,
-                    },
-                )
-                if created:
-                    # Set an unusable password immediately for externally managed users
-                    # This is good practice even if CustomRemoteUserBackend also does it,
-                    # as it ensures consistency.
-                    user.set_unusable_password()
-                    user.save()
+            user, created = User.objects.get_or_create(
+                username=dev_username,
+                defaults={"email": dev_email},
+            )
+            if created:
+                user.set_unusable_password()
+                user.save()
 
         response: HttpResponse = self.get_response(request)
         return response

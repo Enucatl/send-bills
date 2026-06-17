@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 import pytest
-from rest_framework.test import APIRequestFactory
 
 from send_bills.bills.models import Creditor, Contact
 
@@ -16,11 +15,6 @@ def tzinfo():
 def today_date():
     """Provides a fixed arbitrary date for time-sensitive tests."""
     return datetime(2023, 10, 26, tzinfo=timezone.utc)
-
-
-@pytest.fixture
-def request_factory():
-    return APIRequestFactory()
 
 
 @pytest.fixture

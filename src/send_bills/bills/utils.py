@@ -71,22 +71,10 @@ def generate_attachment(
     )
 
 
-def send_overdue_email(bill: Bill) -> int:
-    """Sends an overdue bill notification email to the contact.
-
-    This function generates a PDF of the overdue bill and attaches it to the email.
-
-    Args:
-        bill: The Bill object that is overdue.
-
-    Returns:
-        The number of emails sent (typically 1 on success).
-    """
+def _send_bill_email(bill: Bill, subject_template: str, body_template: str) -> int:
     context: Dict[str, Any] = {"bill": bill}
-    subject: str = render_to_string(
-        "emails/overdue_subject.txt", context=context
-    ).strip()
-    body: str = render_to_string("emails/overdue_body.txt", context=context)
+    subject: str = render_to_string(subject_template, context=context).strip()
+    body: str = render_to_string(body_template, context=context)
 
     pdf_buffer = generate_pdf(bill)
     attachment = generate_attachment(pdf_buffer, filename="bill.pdf")
@@ -94,7 +82,7 @@ def send_overdue_email(bill: Bill) -> int:
     email = EmailMessage(
         subject=subject,
         body=body,
-        from_email=bill.creditor.email,  # Sender
+        from_email=bill.creditor.email,
         to=[bill.contact.email],
         cc=[bill.creditor.email],
         attachments=[attachment],
@@ -102,31 +90,22 @@ def send_overdue_email(bill: Bill) -> int:
     return email.send(fail_silently=False)
 
 
-def send_bill_email(bill: Bill) -> int:
-    """Sends a bill email to the contact with the QR-bill PDF attached.
-
-    Args:
-        bill: The Bill object to be sent.
-
-    Returns:
-        The number of emails sent (typically 1 on success).
-    """
-    context: Dict[str, Any] = {"bill": bill}
-    subject: str = render_to_string("emails/bill_subject.txt", context=context).strip()
-    body: str = render_to_string("emails/bill_body.txt", context=context)
-
-    pdf_buffer = generate_pdf(bill)
-    attachment = generate_attachment(pdf_buffer, filename="bill.pdf")
-
-    email = EmailMessage(
-        subject=subject,
-        body=body,
-        from_email=bill.creditor.email,  # Sender
-        to=[bill.contact.email],  # Primary recipient (the debtor)
-        cc=[bill.creditor.email],  # CC the creditor for their records
-        attachments=[attachment],
+def send_overdue_email(bill: Bill) -> int:
+    """Sends an overdue bill notification email to the contact."""
+    return _send_bill_email(
+        bill,
+        "emails/overdue_subject.txt",
+        "emails/overdue_body.txt",
     )
-    return email.send(fail_silently=False)
+
+
+def send_bill_email(bill: Bill) -> int:
+    """Sends a bill email to the contact with the QR-bill PDF attached."""
+    return _send_bill_email(
+        bill,
+        "emails/bill_subject.txt",
+        "emails/bill_body.txt",
+    )
 
 
 def process_payments(csv_file: File) -> int:

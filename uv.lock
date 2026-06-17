@@ -68,18 +68,6 @@ wheels = [
 ]
 
 [[package]]
-name = "click"
-version = "8.4.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9b/98/518d8e5081007684232226f475082b30087d0f585e8457db087298259f49/click-8.4.1.tar.gz", hash = "sha256:918b5633eddf6b41c32d4f454bf0de810065c74e3f7dbf8ee5452f8be88d3e96", size = 353007, upload-time = "2026-05-22T04:08:37.769Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/0d/67e5b4109ea4a837e80daa87c2c696711955e40449a97e8926672534def2/click-8.4.1-py3-none-any.whl", hash = "sha256:482be17c6991b8c19c5429a1e995d9b0efdbb63172824c41f99965dc0ade8ec2", size = 116639, upload-time = "2026-05-22T04:08:35.26Z" },
-]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -137,18 +125,6 @@ wheels = [
 ]
 
 [[package]]
-name = "djangorestframework"
-version = "3.17.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/d7/c016e69fac19ff8afdc89db9d31d9ae43ae031e4d1993b20aca179b8301a/djangorestframework-3.17.1.tar.gz", hash = "sha256:a6def5f447fe78ff853bff1d47a3c59bf38f5434b031780b351b0c73a62db1a5", size = 905742, upload-time = "2026-03-24T16:58:33.705Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/e1/2c516bdc83652b1a60c6119366ac2c0607b479ed05cd6093f916ca8928f8/djangorestframework-3.17.1-py3-none-any.whl", hash = "sha256:c3c74dd3e83a5a3efc37b3c18d92bd6f86a6791c7b7d4dff62bb068500e76457", size = 898844, upload-time = "2026-03-24T16:58:31.845Z" },
-]
-
-[[package]]
 name = "faker"
 version = "12.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -158,18 +134,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/89/f2/ea1966e890603e172b7f3bebde614813a24986390799d4dd43960aeffd18/Faker-12.0.1.tar.gz", hash = "sha256:aa7103805ae793277abbb85da9f6f05e76a1a295a9384a8e17c2fba2b3a690cb", size = 1428846, upload-time = "2022-02-04T16:01:33.267Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ae/10/9a650725c310f61160909637446c18b92db7585ddf3326bc0767b850075e/Faker-12.0.1-py3-none-any.whl", hash = "sha256:1dc2811f20e163892fefe7006f2ce00778f8099a40aee265bfa60a13400de63d", size = 1464239, upload-time = "2022-02-04T16:01:30.623Z" },
-]
-
-[[package]]
-name = "freezegun"
-version = "1.5.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "python-dateutil" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/95/dd/23e2f4e357f8fd3bdff613c1fe4466d21bfb00a6177f238079b17f7b1c84/freezegun-1.5.5.tar.gz", hash = "sha256:ac7742a6cc6c25a2c35e9292dfd554b897b517d2dec26891a2e8debf205cb94a", size = 35914, upload-time = "2025-08-09T10:39:08.338Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5e/2e/b41d8a1a917d6581fc27a35d05561037b048e47df50f27f8ac9c7e27a710/freezegun-1.5.5-py3-none-any.whl", hash = "sha256:cd557f4a75cf074e84bc374249b9dd491eaeacd61376b9eb3c423282211619d2", size = 19266, upload-time = "2025-08-09T10:39:06.636Z" },
 ]
 
 [[package]]
@@ -557,13 +521,10 @@ name = "send-bills"
 source = { editable = "." }
 dependencies = [
     { name = "cairosvg" },
-    { name = "click" },
     { name = "dj-database-url" },
     { name = "django" },
-    { name = "djangorestframework" },
     { name = "gunicorn" },
     { name = "jinja2" },
-    { name = "mixer" },
     { name = "pandas" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pyarrow" },
@@ -574,7 +535,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "freezegun" },
+    { name = "mixer" },
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "pytest-mock" },
@@ -585,14 +546,11 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cairosvg" },
-    { name = "click" },
     { name = "dj-database-url" },
     { name = "django", specifier = ">=6,<7" },
-    { name = "djangorestframework" },
-    { name = "freezegun", marker = "extra == 'dev'" },
     { name = "gunicorn" },
     { name = "jinja2" },
-    { name = "mixer" },
+    { name = "mixer", marker = "extra == 'dev'" },
     { name = "pandas" },
     { name = "psycopg", extras = ["binary"] },
     { name = "pyarrow" },
