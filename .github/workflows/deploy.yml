@@ -40,8 +40,8 @@ jobs:
           echo "Detected VERSION: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Run Django tests
-        run: DATABASE_URL="sqlite:///:memory:" uv run python src/send_bills/manage.py test bills api
+      - name: Run tests
+        run: uv run pytest src/send_bills/tests
 
       - name: Generate Docker Tags
         id: tags
