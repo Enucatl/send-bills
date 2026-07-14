@@ -35,5 +35,3 @@ CSRF_COOKIE_SECURE = True
 # SECURE_HSTS_SECONDS = 31536000  # 1 year
 # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # SECURE_HSTS_PRELOAD = True
-
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

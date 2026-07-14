@@ -3,20 +3,33 @@ from dataclasses import dataclass
 import pytest
 from django.core.management import call_command
 
+from send_bills.bills.services import LifecycleResult
+
 
 @dataclass
 class FakeSummary:
-    generated_bills: list[int]
-    sent_pending_bills: list[int]
-    marked_overdue_bills: list[int]
-    sent_overdue_notifications: list[int]
+    generated_bills: list[LifecycleResult]
+    sent_pending_bills: list[LifecycleResult]
+    marked_overdue_bills: list[LifecycleResult]
+    sent_overdue_notifications: list[LifecycleResult]
 
 
 @pytest.mark.django_db
 def test_process_bills_command_calls_service(mocker, capsys):
     mock_process_bills = mocker.patch(
         "send_bills.bills.management.commands.process_bills.process_bills",
-        return_value=FakeSummary([1], [2], [3], [4]),
+        return_value=FakeSummary(
+            [LifecycleResult(1, "processed", "ok")],
+            [
+                LifecycleResult(2, "processed", "ok"),
+                LifecycleResult(3, "error", "failed"),
+            ],
+            [LifecycleResult(4, "processed", "ok")],
+            [
+                LifecycleResult(5, "processed", "ok"),
+                LifecycleResult(6, "skipped", "not due"),
+            ],
+        ),
     )
 
     call_command("process_bills")

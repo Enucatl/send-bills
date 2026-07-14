@@ -12,10 +12,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options) -> None:
         summary = process_bills()
-        generated = len(summary.generated_bills)
-        sent_pending = len(summary.sent_pending_bills)
-        marked_overdue = len(summary.marked_overdue_bills)
-        overdue_notifications = len(summary.sent_overdue_notifications)
+        generated = sum(
+            result.status == "processed" for result in summary.generated_bills
+        )
+        sent_pending = sum(
+            result.status == "processed" for result in summary.sent_pending_bills
+        )
+        marked_overdue = sum(
+            result.status == "processed" for result in summary.marked_overdue_bills
+        )
+        overdue_notifications = sum(
+            result.status == "processed"
+            for result in summary.sent_overdue_notifications
+        )
 
         self.stdout.write(
             self.style.SUCCESS(

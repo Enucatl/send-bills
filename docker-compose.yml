@@ -12,6 +12,7 @@ services:
     cpu_shares: 512
     extra_hosts:
       - "${DOCKER_DOMAIN}:host-gateway"
+      - "docker-host.internal:host-gateway"
     environment:
       - CSRF_TRUSTED_ORIGINS
       - DJANGO_ALLOWED_HOSTS
@@ -59,6 +60,9 @@ services:
     extends:
       file: ../compose-security-baseline/hardening.yml
       service: hardened-medium
+    extra_hosts:
+      - "${DOCKER_DOMAIN}:host-gateway"
+      - "docker-host.internal:host-gateway"
     build:
       context: .
       dockerfile: Dockerfile
@@ -112,6 +116,7 @@ services:
       - django_secret_key
       - postgres_password
     networks:
+      - traefik_proxy
       - default
 
   db:

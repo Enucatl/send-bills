@@ -86,3 +86,4 @@ def test_production_reads_secret_files(monkeypatch, tmp_path):
 
     assert production.SECRET_KEY == "file-secret"
     assert production.DATABASES["default"]["PASSWORD"] == "file-password"
+    assert production.EMAIL_BACKEND == "send_bills.project.email.EmailBackend"

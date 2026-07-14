@@ -13,7 +13,7 @@ services:
       DATABASE_PASSWORD_FILE: ""
       DATABASE_USER: bills
       DJANGO_ALLOWED_HOSTS: localhost,docker.home.arpa
-      DJANGO_EMAIL_HOST: docker.home.arpa
+      DJANGO_EMAIL_HOST: docker-host.internal
       DJANGO_EMAIL_HOST_PASSWORD_FILE: /run/secrets/django_email_host_password
       DJANGO_SETTINGS_MODULE: send_bills.project.settings.development
       DJANGO_SECRET_KEY_FILE: ""
@@ -31,7 +31,7 @@ services:
       DATABASE_PASSWORD_FILE: ""
       DATABASE_USER: bills
       DJANGO_ALLOWED_HOSTS: localhost,docker.home.arpa
-      DJANGO_EMAIL_HOST: docker.home.arpa
+      DJANGO_EMAIL_HOST: docker-host.internal
       DJANGO_EMAIL_HOST_PASSWORD_FILE: /run/secrets/django_email_host_password
       DJANGO_SETTINGS_MODULE: send_bills.project.settings.development
       DJANGO_SECRET_KEY_FILE: ""
