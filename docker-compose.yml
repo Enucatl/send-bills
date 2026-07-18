@@ -121,6 +121,7 @@ services:
 
   db:
     image: postgres:18
+    restart: unless-stopped
     environment:
       - POSTGRES_DB=bills
       - POSTGRES_USER=bills
