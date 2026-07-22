@@ -116,8 +116,8 @@ services:
       - django_secret_key
       - postgres_password
     networks:
-      - traefik_proxy
       - default
+      - host_egress
 
   db:
     image: postgres:18
@@ -149,6 +149,7 @@ secrets:
 networks:
   default:
     internal: true
+  host_egress:
   traefik_proxy:
     external: true
 volumes:
