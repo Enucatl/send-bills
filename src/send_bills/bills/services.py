@@ -13,7 +13,7 @@ from send_bills.bills.utils import send_bill_email, send_overdue_email
 logger = logging.getLogger(__name__)
 
 LifecycleStatus = Literal["processed", "skipped", "error"]
-OVERDUE_NOTIFICATION_INTERVAL = timedelta(days=7)
+OVERDUE_NOTIFICATION_INTERVAL = timedelta(days=30)
 
 
 @dataclass(slots=True)

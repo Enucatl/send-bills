@@ -181,7 +181,7 @@ def test_mark_overdue_and_overdue_notifications(
         amount="200.00",
         due_date=current_time - timedelta(days=10),
         status=Bill.BillStatus.OVERDUE,
-        overdue_notified_at=current_time - timedelta(days=8),
+        overdue_notified_at=current_time - timedelta(days=31),
     )
     recent_notice = Bill.objects.create(
         creditor=creditor_fixture,
