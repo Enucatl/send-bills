@@ -38,11 +38,11 @@ text = text.replace("enabled = true", "enabled = false")
 text = re.sub(r'dynamic = \["version"\]', f'version = "{os.environ["VERSION"]}"', text, count=1)
 path.write_text(text)
 PY
-RUN uv sync --no-install-project --no-editable
+RUN uv sync --frozen --no-dev --no-install-project --no-editable
 
 # Copy the application source code and install it
 COPY src/ src/
-RUN uv sync --no-editable
+RUN uv sync --frozen --no-dev --no-editable
 
 # Create the static files directory before collecting
 # /vol/web is a common pattern for persistent volumes, so we keep it

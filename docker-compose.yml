@@ -120,6 +120,9 @@ services:
       - host_egress
 
   db:
+    extends:
+      file: ../compose-security-baseline/hardening.yml
+      service: postgres
     image: postgres:18
     restart: unless-stopped
     environment:
