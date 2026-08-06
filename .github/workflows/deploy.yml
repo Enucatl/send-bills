@@ -90,4 +90,4 @@ jobs:
       build_args: |
         VERSION=${{ needs.test.outputs.version }}
     secrets:
-      github_token: ${{ secrets.GITHUB_TOKEN }}
+      registry_token: ${{ secrets.GITHUB_TOKEN }}
