@@ -89,4 +89,5 @@ jobs:
       push: true
       build_args: |
         VERSION=${{ needs.test.outputs.version }}
-    secrets: inherit
+    secrets:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
