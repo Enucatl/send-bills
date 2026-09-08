@@ -67,6 +67,11 @@ RUN apt-get update \
     libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
+# Runtime uses /app/.venv only. Remove unused pip so image scans do not
+# flag pip's vendored CycloneDX inventory (setuptools/msgpack).
+RUN python -m pip uninstall -y --root-user-action=ignore pip \
+    && rm -rf /usr/local/lib/python3.13/ensurepip /root/.cache
+
 RUN groupadd --system app \
     && useradd --system --gid app --create-home --home-dir /app app
 
