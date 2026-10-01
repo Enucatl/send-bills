@@ -127,7 +127,7 @@ def setup_bills_for_payments(
         currency="CHF",
         creditor=creditor_fixture,
         contact=contact_fixture,
-        reference_number="RF14YOUT20250401RICCARDO",
+        reference_number="UNMATCHEDAMOUNT",
         status=Bill.BillStatus.OVERDUE,
         due_date=datetime(2025, 4, 1, tzinfo=tzinfo),
     )
@@ -352,26 +352,20 @@ Data dell'operazione;Ora dell'operazione;Data di contabilizzazione;Data di valut
 def test_process_payments_with_different_currency(
     setup_bills_for_payments,
     mock_csv_file,
-    creditor_fixture,
-    contact_fixture,
-    tzinfo,
 ):
     """
     Test that bills with different currencies are not matched.
     """
-    Bill.objects.create(
-        amount=Decimal("20.40"),
-        currency="USD",
-        creditor=creditor_fixture,
-        contact=contact_fixture,
-        reference_number="RF14YOUT20250401RICCARDO",
-        status=Bill.BillStatus.OVERDUE,
-        due_date=datetime(2025, 4, 1, tzinfo=tzinfo),
-    )
+    bill = setup_bills_for_payments["riccardo"]
+    bill.currency = "USD"
+    bill.save(update_fields=["currency"])
 
     paid_count = process_payments(mock_csv_file)
 
-    assert paid_count == 11
+    assert paid_count == 10
+    bill.refresh_from_db()
+    assert bill.status == Bill.BillStatus.OVERDUE
+    assert bill.paid_at is None
 
 
 @pytest.mark.django_db

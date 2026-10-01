@@ -100,7 +100,7 @@ STORAGES = {
 }
 
 # Configure email
-EMAIL_BACKEND = "send_bills.project.email.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST")
 EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "10125"))
 EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_HOST_USER")
@@ -115,4 +115,3 @@ EMAIL_USE_TLS = _env_bool("DJANGO_EMAIL_USE_TLS", "True")
 EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "60"))
 EMAIL_SSL_KEYFILE = os.environ.get("DJANGO_EMAIL_SSL_KEYFILE")
 EMAIL_SSL_CERTFILE = os.environ.get("DJANGO_EMAIL_SSL_CERTFILE")
-EMAIL_CAFILE = os.environ.get("DJANGO_EMAIL_CAFILE")

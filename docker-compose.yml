@@ -16,8 +16,7 @@ services:
     environment:
       - CSRF_TRUSTED_ORIGINS
       - DJANGO_ALLOWED_HOSTS
-      - DJANGO_EMAIL_CAFILE=/etc/ssl/certs/ca-certificates.crt
-      - DJANGO_EMAIL_HOST
+      - DJANGO_EMAIL_HOST=${DOCKER_DOMAIN}
       - DJANGO_EMAIL_HOST_PASSWORD_FILE=/run/secrets/django_email_host_password
       - DJANGO_EMAIL_PORT
       - DJANGO_EMAIL_HOST_USER
@@ -74,8 +73,7 @@ services:
     environment:
       - CSRF_TRUSTED_ORIGINS
       - DJANGO_ALLOWED_HOSTS
-      - DJANGO_EMAIL_CAFILE=/etc/ssl/certs/ca-certificates.crt
-      - DJANGO_EMAIL_HOST
+      - DJANGO_EMAIL_HOST=${DOCKER_DOMAIN}
       - DJANGO_EMAIL_HOST_PASSWORD_FILE=/run/secrets/django_email_host_password
       - DJANGO_EMAIL_PORT
       - DJANGO_EMAIL_HOST_USER
@@ -110,6 +108,8 @@ services:
       retries: 3
     tmpfs:
       - /tmp:rw,nosuid,noexec,mode=1777,size=16m
+    volumes:
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
     secrets:
       - django_email_host_password
       - django_secret_key

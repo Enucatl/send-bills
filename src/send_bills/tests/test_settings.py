@@ -1,10 +1,21 @@
 import importlib
+import ssl
 import sys
 
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
 from send_bills.project.settings.utils import read_env_or_file
+
+
+def test_smtp_verifies_server_certificate():
+    """The configured SMTP backend verifies certificates and server names."""
+    from django.core.mail import get_connection
+    from send_bills.project.settings import base
+
+    backend = get_connection(base.EMAIL_BACKEND, ssl_certfile=None, ssl_keyfile=None)
+    assert backend.ssl_context.verify_mode == ssl.CERT_REQUIRED
+    assert backend.ssl_context.check_hostname is True
 
 
 def test_read_env_or_file_prefers_secret_file(tmp_path, monkeypatch):
@@ -86,4 +97,4 @@ def test_production_reads_secret_files(monkeypatch, tmp_path):
 
     assert production.SECRET_KEY == "file-secret"
     assert production.DATABASES["default"]["PASSWORD"] == "file-password"
-    assert production.EMAIL_BACKEND == "send_bills.project.email.EmailBackend"
+    assert production.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"

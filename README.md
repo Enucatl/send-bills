@@ -190,6 +190,11 @@ For production, you must configure the following environment variables:
 - `DJANGO_EMAIL_HOST_USER`: Your SMTP username.
 - `DJANGO_EMAIL_HOST_PASSWORD_FILE`: Path to a file containing your SMTP password.
 
+Production Compose connects to SMTP through the `${DOCKER_DOMAIN}` host alias
+so TLS can verify the server's DNS certificate. Both the web and scheduler
+containers mount the host CA bundle. Development Compose overrides the SMTP host
+with `docker-host.internal`.
+
 ### Database Cutover
 
 When moving from the old external Postgres database to the new in-stack `db`

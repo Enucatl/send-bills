@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from decimal import Decimal
 
 import pytest
+from django.core.exceptions import ValidationError
 
 from send_bills.bills.models import Bill, RecurringBill
 from send_bills.bills.services import process_bills
@@ -100,12 +101,14 @@ def test_send_pending_bills_updates_sent_status(
         contact=contact_fixture,
         amount="100.00",
         status=Bill.BillStatus.PENDING,
+        billing_date=current_time,
     )
     pending_two = Bill.objects.create(
         creditor=creditor_fixture,
         contact=contact_fixture,
         amount="200.00",
         status=Bill.BillStatus.PENDING,
+        billing_date=current_time,
     )
     sent_bill = Bill.objects.create(
         creditor=creditor_fixture,
@@ -145,12 +148,14 @@ def test_send_pending_bills_reports_partial_failure(
         contact=contact_fixture,
         amount="100.00",
         status=Bill.BillStatus.PENDING,
+        billing_date=current_time,
     )
     pending_two = Bill.objects.create(
         creditor=creditor_fixture,
         contact=contact_fixture,
         amount="200.00",
         status=Bill.BillStatus.PENDING,
+        billing_date=current_time,
     )
 
     mock_send_bill_email = mocker.patch("send_bills.bills.services.send_bill_email")
@@ -173,7 +178,9 @@ def test_mark_overdue_and_overdue_notifications(
         contact=contact_fixture,
         amount="100.00",
         due_date=current_time - timedelta(days=1),
-        status=Bill.BillStatus.PENDING,
+        status=Bill.BillStatus.SENT,
+        sent_at=current_time - timedelta(days=30),
+        billing_date=current_time,
     )
     already_overdue = Bill.objects.create(
         creditor=creditor_fixture,
@@ -181,6 +188,7 @@ def test_mark_overdue_and_overdue_notifications(
         amount="200.00",
         due_date=current_time - timedelta(days=10),
         status=Bill.BillStatus.OVERDUE,
+        sent_at=current_time - timedelta(days=60),
         overdue_notified_at=current_time - timedelta(days=31),
     )
     recent_notice = Bill.objects.create(
@@ -189,6 +197,7 @@ def test_mark_overdue_and_overdue_notifications(
         amount="300.00",
         due_date=current_time - timedelta(days=20),
         status=Bill.BillStatus.OVERDUE,
+        sent_at=current_time - timedelta(days=60),
         overdue_notified_at=current_time - timedelta(days=1),
     )
     future_bill = Bill.objects.create(
@@ -197,6 +206,7 @@ def test_mark_overdue_and_overdue_notifications(
         amount="400.00",
         due_date=current_time + timedelta(days=1),
         status=Bill.BillStatus.PENDING,
+        billing_date=current_time,
     )
 
     mark_results = mark_overdue_bills(current_time)
@@ -241,6 +251,7 @@ def test_process_bills_is_idempotent(creditor_fixture, contact_fixture, mocker):
         contact=contact_fixture,
         amount="50.00",
         status=Bill.BillStatus.PENDING,
+        billing_date=current_time,
     )
     overdue_bill = Bill.objects.create(
         creditor=creditor_fixture,
@@ -248,6 +259,7 @@ def test_process_bills_is_idempotent(creditor_fixture, contact_fixture, mocker):
         amount="25.00",
         due_date=current_time - timedelta(days=10),
         status=Bill.BillStatus.OVERDUE,
+        sent_at=current_time - timedelta(days=60),
     )
 
     mock_send_bill_email = mocker.patch(
@@ -280,3 +292,203 @@ def test_process_bills_is_idempotent(creditor_fixture, contact_fixture, mocker):
     assert pending_bill.status == Bill.BillStatus.SENT
     assert Bill.objects.filter(status=Bill.BillStatus.SENT).count() == 2
     assert overdue_bill.overdue_notification_count == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "frequency,kwargs",
+    [
+        ("Week", []),
+        ("Week", {"weekday": 7}),
+        ("Week", {"n": 0}),
+        ("Week", {"n": -1}),
+        ("BusinessDay", {"offset": timedelta(days=-7)}),
+    ],
+)
+def test_recurrence_rejects_invalid_or_nonadvancing_offsets(frequency, kwargs):
+    """Reject invalid schedules as field errors rather than scheduler failures."""
+    schedule = RecurringBill(frequency=frequency, frequency_kwargs=kwargs)
+    with pytest.raises(ValidationError) as error:
+        schedule.clean()
+    assert "frequency_kwargs" in error.value.message_dict
+
+
+@pytest.mark.django_db
+def test_legacy_nonadvancing_recurrence_cannot_generate_bill(
+    creditor_fixture,
+    contact_fixture,
+):
+    """Legacy invalid schedules must fail before creating a duplicate invoice."""
+    now = datetime(2025, 9, 1, tzinfo=dt_timezone.utc)
+    schedule = RecurringBill.objects.create(
+        creditor=creditor_fixture,
+        contact=contact_fixture,
+        amount="10.00",
+        description_template="Subscription",
+        frequency="Week",
+        start_date=now,
+    )
+    RecurringBill.objects.filter(pk=schedule.pk).update(frequency_kwargs={"n": 0})
+
+    assert generate_due_recurring_bills(now)[0].status == "error"
+    assert not Bill.objects.exists()
+    schedule.refresh_from_db()
+    assert schedule.next_billing_date == now
+
+
+@pytest.mark.django_db
+def test_pending_delivery_respects_billing_date_and_payment(
+    creditor_fixture,
+    contact_fixture,
+    mocker,
+):
+    """Future and already paid invoices must not enter email delivery."""
+    now = datetime(2025, 9, 1, tzinfo=dt_timezone.utc)
+    for billing_date, paid_at in [(now + timedelta(days=1), None), (now, now)]:
+        bill = Bill.objects.create(
+            creditor=creditor_fixture,
+            contact=contact_fixture,
+            amount="10.00",
+            billing_date=billing_date,
+        )
+        Bill.objects.filter(pk=bill.pk).update(paid_at=paid_at)
+    send = mocker.patch("send_bills.bills.services.send_bill_email")
+
+    assert send_pending_bills(now) == []
+    send.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_failed_initial_delivery_retries_without_premature_reminders(
+    creditor_fixture,
+    contact_fixture,
+    mocker,
+):
+    """An old invoice gets one initial email and a grace period after delivery."""
+    now = datetime(2025, 9, 1, tzinfo=dt_timezone.utc)
+    bill = Bill.objects.create(
+        creditor=creditor_fixture,
+        contact=contact_fixture,
+        amount="10.00",
+        billing_date=now - timedelta(days=60),
+    )
+    send = mocker.patch(
+        "send_bills.bills.services.send_bill_email",
+        side_effect=[RuntimeError("offline"), 1],
+    )
+    reminder = mocker.patch(
+        "send_bills.bills.services.send_overdue_email", return_value=1
+    )
+
+    process_bills(now)
+    bill.refresh_from_db()
+    assert bill.status == Bill.BillStatus.PENDING
+    assert bill.sent_at is None
+    reminder.assert_not_called()
+
+    process_bills(now + timedelta(days=1))
+    assert send.call_count == 2
+    reminder.assert_not_called()
+    process_bills(now + timedelta(days=30))
+    reminder.assert_not_called()
+    process_bills(now + timedelta(days=31))
+    reminder.assert_called_once()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"paid_at": datetime(2025, 9, 1, tzinfo=dt_timezone.utc)},
+        {"due_date": datetime(2025, 10, 1, tzinfo=dt_timezone.utc)},
+        {"due_date": None},
+        {"sent_at": None},
+    ],
+)
+def test_reminders_require_unpaid_due_and_delivered_bills(
+    creditor_fixture,
+    contact_fixture,
+    mocker,
+    changes,
+):
+    """Stale overdue status alone must never trigger a reminder."""
+    now = datetime(2025, 9, 1, tzinfo=dt_timezone.utc)
+    bill = Bill.objects.create(
+        creditor=creditor_fixture,
+        contact=contact_fixture,
+        amount="10.00",
+        billing_date=now - timedelta(days=60),
+        sent_at=now - timedelta(days=60),
+        status=Bill.BillStatus.OVERDUE,
+    )
+    Bill.objects.filter(pk=bill.pk).update(**changes)
+    reminder = mocker.patch("send_bills.bills.services.send_overdue_email")
+
+    assert send_due_overdue_notifications(now) == []
+    reminder.assert_not_called()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "status,action,email_function,changes",
+    [
+        (
+            Bill.BillStatus.PENDING,
+            send_pending_bills,
+            "send_bill_email",
+            {"paid_at": True},
+        ),
+        (
+            Bill.BillStatus.PENDING,
+            send_pending_bills,
+            "send_bill_email",
+            {"billing_date": True},
+        ),
+        (
+            Bill.BillStatus.OVERDUE,
+            send_due_overdue_notifications,
+            "send_overdue_email",
+            {"paid_at": True},
+        ),
+        (
+            Bill.BillStatus.OVERDUE,
+            send_due_overdue_notifications,
+            "send_overdue_email",
+            {"due_date": True},
+        ),
+    ],
+)
+def test_email_eligibility_is_rechecked_after_lock(
+    creditor_fixture,
+    contact_fixture,
+    mocker,
+    status,
+    action,
+    email_function,
+    changes,
+):
+    """Edits between candidate selection and locking must prevent stale sends."""
+    now = datetime(2025, 9, 1, tzinfo=dt_timezone.utc)
+    bill = Bill.objects.create(
+        creditor=creditor_fixture,
+        contact=contact_fixture,
+        amount="10.00",
+        billing_date=now - timedelta(days=60),
+        sent_at=now - timedelta(days=60),
+        status=status,
+    )
+
+    def edit_before_lock(queryset):
+        """Simulate an admin edit after candidate IDs have been selected."""
+        Bill.objects.filter(pk=bill.pk).update(
+            **{field: now + timedelta(days=1) for field in changes}
+        )
+        return queryset
+
+    mocker.patch(
+        "send_bills.bills.services._apply_skip_locked", side_effect=edit_before_lock
+    )
+    email = mocker.patch(f"send_bills.bills.services.{email_function}")
+
+    assert action(now)[0].status == "skipped"
+    email.assert_not_called()

@@ -92,8 +92,8 @@ class CreditorAdmin(admin.ModelAdmin):
                     )
                 return redirect("..")  # Redirect back to the creditor list view
 
-        # For GET request, render the upload form
-        form = CsvUploadForm()
+        else:
+            form = CsvUploadForm()
         context = {
             "form": form,
             "site_header": self.admin_site.site_header,

@@ -1,7 +1,7 @@
 from typing import Any, List, Tuple
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import SET_NULL
 from django.utils import timezone
 from iso3166 import countries
@@ -11,7 +11,7 @@ import qrbill
 import stdnum.exceptions
 import stdnum.iban
 
-from .references import cleanup_reference, generate_invoice_reference
+from .references import generate_invoice_reference
 
 
 ALLOWED_DATE_OFFSETS: List[str] = [
@@ -70,7 +70,7 @@ def get_date_offset_instance(offset_name: str, **kwargs: Any) -> pd.DateOffset:
         raise ValidationError(
             f"Could not find a DateOffset class named '{offset_name}'."
         ) from e
-    except TypeError as e:
+    except (TypeError, ValueError, OverflowError) as e:
         # This will catch errors like passing an invalid keyword argument (e.g., 'foo')
         # or a wrong type for an argument (e.g., n='two').
         raise ValidationError(f"Invalid arguments for '{offset_name}': {e}") from e
@@ -229,19 +229,7 @@ class RecurringBill(BaseBill):
                 {"next_billing_date": "next_billing_date cannot be before start_date"}
             )
 
-        # Validate that the frequency and kwargs are a valid combination
-        try:
-            get_date_offset_instance(self.frequency, **self.frequency_kwargs)
-        except ValidationError as e:
-            # Raise a more specific error for the form fields
-            raise ValidationError(
-                {
-                    "frequency": e,
-                    "frequency_kwargs": (
-                        f"These arguments are not valid for the '{self.frequency}' offset."
-                    ),
-                }
-            ) from e
+        self.calculate_next_billing_date()
 
     def calculate_next_billing_date(self) -> pd.Timestamp:
         """Calculates the next due date based on the current `next_billing_date` and `frequency`.
@@ -249,10 +237,26 @@ class RecurringBill(BaseBill):
         Returns:
             A `pd.Timestamp` representing the calculated next billing date.
         """
-        offset = get_date_offset_instance(self.frequency, **self.frequency_kwargs)
-        # Ensure next_billing_date is a timezone-aware datetime for pd.Timestamp
-        current_billing_date = pd.Timestamp(self.next_billing_date)
-        return current_billing_date + offset
+        if not isinstance(self.frequency_kwargs, dict):
+            raise ValidationError({"frequency_kwargs": "Enter a JSON object."})
+        try:
+            offset = get_date_offset_instance(self.frequency, **self.frequency_kwargs)
+            current_billing_date = pd.Timestamp(
+                self.next_billing_date or self.start_date
+            )
+            next_billing_date = current_billing_date + offset
+            if offset.n <= 0 or next_billing_date <= current_billing_date:
+                raise ValidationError("The frequency must advance the billing date.")
+            return next_billing_date
+        except (ValidationError, TypeError, ValueError, OverflowError) as e:
+            raise ValidationError(
+                {
+                    "frequency": str(e),
+                    "frequency_kwargs": (
+                        f"These arguments are not valid for the '{self.frequency}' offset."
+                    ),
+                }
+            ) from e
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Overrides the default save method.
@@ -349,44 +353,45 @@ class Bill(BaseBill):
     )
 
     def _generate_reference_number(self) -> str:
-        """Generates a unique RF-Creditor reference number for the bill.
-
-        The reference number is based on the billing date, contact email,
-        and a cleaned version of the additional information, ensuring uniqueness
-        and compliance with the RF-Creditor standard.
-
-        Returns:
-            A string representing the generated RF-Creditor reference number.
-        """
-        # Use the billing_date for a consistent reference
-        reference_date = pd.Timestamp(self.billing_date).strftime("%Y%m%d")
-
-        # Use parts of the contact's email and bill info for uniqueness
-        contact_part = cleanup_reference(self.contact.email)[:9]
-        info_part = cleanup_reference(self.additional_information)[:4]
-
-        # Combine them to create a unique base string
-        base_reference = f"{info_part}{reference_date}{contact_part}"
-
-        # Generate the final RF-Creditor reference
-        return generate_invoice_reference(base_reference)
+        """Generate an RF reference from the bill's unique database identifier."""
+        return generate_invoice_reference(f"B{self.pk}")
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """Overrides the default save method.
 
         - If it's a new bill and `due_date` is not set, it defaults `due_date`
           to one month after `billing_date`.
-        - Generates the `reference_number` if it's not already set.
+        - Marks a recorded payment as paid, including partial saves.
+        - Generates a reference after allocating the ID in one transaction.
         """
         # If a new bill is created without an explicit due date, set it.
         if not self.pk and self.due_date is None:
             # Ensure billing_date is a timezone-aware datetime for pd.Timestamp
             self.due_date = pd.Timestamp(self.billing_date) + pd.DateOffset(months=1)
 
-        # If the reference number hasn't been set, generate it.
-        if not self.reference_number:
-            self.reference_number = self._generate_reference_number()
-        super().save(*args, **kwargs)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and not update_fields:
+            return
+        if self.paid_at is not None:
+            self.status = self.BillStatus.PAID
+            if update_fields is not None:
+                kwargs["update_fields"] = set(update_fields) | {"status", "paid_at"}
+
+        if self.reference_number:
+            super().save(*args, **kwargs)
+            return
+
+        # Allocate the ID and its reference atomically; preserve issued references.
+        with transaction.atomic(using=kwargs.get("using") or self._state.db):
+            super().save(*args, **kwargs)
+            reference = self._generate_reference_number()
+            bills = type(self).objects.using(self._state.db)
+            if bills.filter(reference_number=reference).exclude(pk=self.pk).exists():
+                raise ValidationError(
+                    "This reference is already assigned to another bill."
+                )
+            bills.filter(pk=self.pk).update(reference_number=reference)
+            self.reference_number = reference
 
     def __str__(self) -> str:
         """Returns a string representation of the bill."""

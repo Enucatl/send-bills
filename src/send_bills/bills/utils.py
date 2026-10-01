@@ -1,9 +1,11 @@
 import io
+from decimal import Decimal
 from typing import Dict, Any
 
 import cairosvg
 from django.core.mail import EmailAttachment, EmailMessage
 from django.core.files.base import File
+from django.db import transaction
 from django.template.loader import render_to_string
 import pandas as pd
 import qrbill
@@ -108,6 +110,7 @@ def send_bill_email(bill: Bill) -> int:
     )
 
 
+@transaction.atomic
 def process_payments(csv_file: File) -> int:
     """Processes a CSV file of payments and updates the status of corresponding bills.
 
@@ -154,23 +157,30 @@ def process_payments(csv_file: File) -> int:
             .str.strip()  # Remove any whitespace
         )
 
-        # Pre-fetch unpaid bills to optimize database queries
-        unpaid_bills_qs = Bill.objects.select_related("creditor").filter(
-            status__in=[Bill.BillStatus.SENT, Bill.BillStatus.OVERDUE]
-        )
-
         for _, row in payments_df.iterrows():
-            # Filter bills based on extracted payment details
-            # Using update() directly is efficient as it avoids fetching objects individually
-            updated_count = unpaid_bills_qs.filter(
-                amount=row["Importo singolo"],
-                creditor__iban=row["Descrizione2"],
-                currency=row["Moneta"],
-                reference_number=row["reference_number"],
-            ).update(
-                paid_at=pd.Timestamp(row["Data dell'operazione"], tz="Europe/Zurich"),
-                status=Bill.BillStatus.PAID,
+            # Include paid bills so reimports cannot settle another colliding bill.
+            matches = list(
+                Bill.objects.select_for_update().filter(
+                    creditor__iban=row["Descrizione2"],
+                    reference_number=row["reference_number"],
+                )[:2]
             )
-            paid_bills_count += updated_count
+            if len(matches) > 1:
+                raise ValueError(
+                    f"Multiple bills share payment reference {row['reference_number']}."
+                )
+            if not matches:
+                continue
+            bill = matches[0]
+            if (
+                bill.status not in [Bill.BillStatus.SENT, Bill.BillStatus.OVERDUE]
+                or bill.paid_at is not None
+                or bill.amount != Decimal(row["Importo singolo"])
+                or bill.currency != row["Moneta"]
+            ):
+                continue
+            bill.paid_at = pd.Timestamp(row["Data dell'operazione"], tz="Europe/Zurich")
+            bill.save(update_fields=["paid_at"])
+            paid_bills_count += 1
 
     return paid_bills_count

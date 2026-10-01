@@ -73,7 +73,10 @@ def generate_due_recurring_bills(
                         pk=recurring_bill_id
                     )
                 ).get()
-                if recurring_bill.next_billing_date > now:
+                if (
+                    not recurring_bill.is_active
+                    or recurring_bill.next_billing_date > now
+                ):
                     results.append(
                         LifecycleResult(
                             recurring_bill.id,
@@ -83,11 +86,10 @@ def generate_due_recurring_bills(
                     )
                     continue
 
+                next_billing_date = recurring_bill.calculate_next_billing_date()
                 new_bill = recurring_bill.generate_bill()
                 new_bill.save()
-                recurring_bill.next_billing_date = (
-                    recurring_bill.calculate_next_billing_date()
-                )
+                recurring_bill.next_billing_date = next_billing_date
                 recurring_bill.save(update_fields=["next_billing_date"])
                 results.append(
                     LifecycleResult(
@@ -108,7 +110,11 @@ def send_pending_bills(current_time: datetime | None = None) -> list[LifecycleRe
     now = current_time or timezone.now()
     results: list[LifecycleResult] = []
     pending_bill_ids = list(
-        Bill.objects.filter(status=Bill.BillStatus.PENDING)
+        Bill.objects.filter(
+            status=Bill.BillStatus.PENDING,
+            billing_date__lte=now,
+            paid_at__isnull=True,
+        )
         .order_by("billing_date", "pk")
         .values_list("pk", flat=True)
     )
@@ -121,12 +127,16 @@ def send_pending_bills(current_time: datetime | None = None) -> list[LifecycleRe
                         pk=bill_id
                     )
                 ).get()
-                if bill.status != Bill.BillStatus.PENDING:
+                if (
+                    bill.status != Bill.BillStatus.PENDING
+                    or bill.billing_date > now
+                    or bill.paid_at is not None
+                ):
                     results.append(
                         LifecycleResult(
                             bill.id,
                             "skipped",
-                            "Bill is no longer pending.",
+                            "Bill is no longer eligible to send.",
                         )
                     )
                     continue
@@ -162,21 +172,19 @@ def send_pending_bills(current_time: datetime | None = None) -> list[LifecycleRe
 def mark_overdue_bills(current_time: datetime | None = None) -> list[LifecycleResult]:
     now = current_time or timezone.now()
     results: list[LifecycleResult] = []
+    overdue_bills = Bill.objects.filter(
+        due_date__lte=now,
+        status=Bill.BillStatus.SENT,
+        sent_at__isnull=False,
+        paid_at__isnull=True,
+    )
     overdue_bill_ids = list(
-        Bill.objects.filter(due_date__lte=now)
-        .exclude(status__in=[Bill.BillStatus.OVERDUE, Bill.BillStatus.PAID])
-        .order_by("due_date", "pk")
-        .values_list("pk", flat=True)
+        overdue_bills.order_by("due_date", "pk").values_list("pk", flat=True)
     )
 
     for bill_id in overdue_bill_ids:
-        updated = (
-            Bill.objects.filter(
-                pk=bill_id,
-                due_date__lte=now,
-            )
-            .exclude(status__in=[Bill.BillStatus.OVERDUE, Bill.BillStatus.PAID])
-            .update(status=Bill.BillStatus.OVERDUE)
+        updated = overdue_bills.filter(pk=bill_id).update(
+            status=Bill.BillStatus.OVERDUE
         )
         if updated:
             results.append(
@@ -200,7 +208,12 @@ def send_due_overdue_notifications(
     minimum_notification_time = now - OVERDUE_NOTIFICATION_INTERVAL
     results: list[LifecycleResult] = []
     overdue_bill_ids = list(
-        Bill.objects.filter(status=Bill.BillStatus.OVERDUE)
+        Bill.objects.filter(
+            status=Bill.BillStatus.OVERDUE,
+            due_date__lte=now,
+            sent_at__lte=minimum_notification_time,
+            paid_at__isnull=True,
+        )
         .filter(
             Q(overdue_notified_at__isnull=True)
             | Q(overdue_notified_at__lte=minimum_notification_time)
@@ -217,12 +230,19 @@ def send_due_overdue_notifications(
                         pk=bill_id
                     )
                 ).get()
-                if bill.status != Bill.BillStatus.OVERDUE:
+                if (
+                    bill.status != Bill.BillStatus.OVERDUE
+                    or bill.paid_at is not None
+                    or bill.due_date is None
+                    or bill.due_date > now
+                    or bill.sent_at is None
+                    or bill.sent_at > minimum_notification_time
+                ):
                     results.append(
                         LifecycleResult(
                             bill.id,
                             "skipped",
-                            "Bill is no longer overdue.",
+                            "Bill is no longer eligible for a reminder.",
                         )
                     )
                     continue
