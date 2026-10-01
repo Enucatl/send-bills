@@ -19,6 +19,8 @@ services:
       - DJANGO_EMAIL_HOST=${DOCKER_DOMAIN}
       - DJANGO_EMAIL_HOST_PASSWORD_FILE=/run/secrets/django_email_host_password
       - DJANGO_EMAIL_PORT
+      - DJANGO_EMAIL_USE_TLS=False
+      - DJANGO_EMAIL_USE_SSL=True
       - DJANGO_EMAIL_HOST_USER
       - DJANGO_SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DJANGO_SETTINGS_MODULE=send_bills.project.settings.production
@@ -76,6 +78,8 @@ services:
       - DJANGO_EMAIL_HOST=${DOCKER_DOMAIN}
       - DJANGO_EMAIL_HOST_PASSWORD_FILE=/run/secrets/django_email_host_password
       - DJANGO_EMAIL_PORT
+      - DJANGO_EMAIL_USE_TLS=False
+      - DJANGO_EMAIL_USE_SSL=True
       - DJANGO_EMAIL_HOST_USER
       - DJANGO_SECRET_KEY_FILE=/run/secrets/django_secret_key
       - DJANGO_SETTINGS_MODULE=send_bills.project.settings.production

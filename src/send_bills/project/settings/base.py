@@ -111,7 +111,8 @@ def _env_bool(name: str, default: str = "True") -> bool:
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
-EMAIL_USE_TLS = _env_bool("DJANGO_EMAIL_USE_TLS", "True")
+EMAIL_USE_TLS = _env_bool("DJANGO_EMAIL_USE_TLS", "False")
+EMAIL_USE_SSL = _env_bool("DJANGO_EMAIL_USE_SSL", "True")
 EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "60"))
 EMAIL_SSL_KEYFILE = os.environ.get("DJANGO_EMAIL_SSL_KEYFILE")
 EMAIL_SSL_CERTFILE = os.environ.get("DJANGO_EMAIL_SSL_CERTFILE")

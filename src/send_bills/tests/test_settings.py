@@ -36,14 +36,18 @@ def test_read_env_or_file_falls_back_to_env(monkeypatch):
 
 def test_email_use_tls_parser(monkeypatch):
     monkeypatch.setenv("DJANGO_EMAIL_USE_TLS", "False")
+    monkeypatch.setenv("DJANGO_EMAIL_USE_SSL", "True")
     from send_bills.project.settings import base
 
     importlib.reload(base)
     assert base.EMAIL_USE_TLS is False
+    assert base.EMAIL_USE_SSL is True
 
     monkeypatch.setenv("DJANGO_EMAIL_USE_TLS", "true")
+    monkeypatch.setenv("DJANGO_EMAIL_USE_SSL", "False")
     importlib.reload(base)
     assert base.EMAIL_USE_TLS is True
+    assert base.EMAIL_USE_SSL is False
 
 
 def test_email_port_uses_django_email_port(monkeypatch):
