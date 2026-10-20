@@ -1,6 +1,6 @@
 # ---- Stage 1: The Builder ----
 # Use a full-featured image to build our application artifacts
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.13-slim-trixie AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1
@@ -57,7 +57,7 @@ RUN chmod +x /app/entrypoint.sh
 
 
 # ---- Stage 2: The Final Image ----
-FROM python:3.13-slim-bookworm
+FROM python:3.13-slim-trixie
 
 ARG VERSION=0.0.0
 
