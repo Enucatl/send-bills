@@ -33,7 +33,7 @@ services:
       - DATABASE_USER=bills
     restart: unless-stopped
     labels:
-      - "traefik.docker.network=traefik_proxy"
+      - "traefik.docker.network=send-bills_traefik"
       - "traefik.enable=true"
       - "traefik.http.routers.bills.rule=Host(`bills.${DOCKER_DOMAIN}`)"
       - "traefik.http.routers.bills.entrypoints=https"
@@ -50,7 +50,7 @@ services:
       - django_secret_key
       - postgres_password
     networks:
-      - traefik_proxy
+      - send-bills_traefik
       - default
     depends_on:
       db:
@@ -156,7 +156,8 @@ networks:
   default:
     internal: true
   host_egress:
-  traefik_proxy:
-    external: true
+  send-bills_traefik:
+    name: send-bills_traefik
+    enable_ipv6: true
 volumes:
   bills_db:
