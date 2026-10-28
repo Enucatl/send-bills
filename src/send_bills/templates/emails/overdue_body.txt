@@ -1,1 +1,3 @@
 The bill to {{ bill.contact }} for {{ bill.additional_information }} is overdue.
+
+Reference: {{ bill.reference_number }}
