@@ -169,6 +169,20 @@ The project has a comprehensive test suite. To run the tests:
 DATABASE_URL="sqlite:///:memory:" uv run pytest src/send_bills/tests
 ```
 
+The `Latest Dependencies` GitHub Actions workflow runs daily at 00:40 UTC and
+can also be started manually. It calls the shared workflow in
+`Enucatl/docker-compose-security-baseline`, upgrades dependencies within
+`pyproject.toml` constraints, and runs pytest in a disposable Docker container
+with an in-memory SQLite database. The repository lockfile stays unchanged.
+The resolved `uv.lock` is available as the `latest-deps-lockfile` run artifact,
+including when installation or tests fail after dependency resolution.
+
+Run the same check locally with Docker:
+
+```bash
+bash scripts/test-latest-deps.sh /tmp/send-bills-latest-deps
+```
+
 ## 🚢 Deployment
 
 This application is built to be deployed as a Docker container.

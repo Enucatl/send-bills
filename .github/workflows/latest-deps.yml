@@ -1,0 +1,13 @@
+name: Latest Dependencies
+
+on:
+  schedule:
+    - cron: "40 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-latest-deps:
+    uses: Enucatl/docker-compose-security-baseline/.github/workflows/latest-deps.yml@main
